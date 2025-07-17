@@ -1,13 +1,17 @@
 package com.NND.tech.Structure_Backend.config;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.SignatureException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
+
 
 import java.security.Key;
 import java.util.Date;
@@ -18,10 +22,16 @@ import java.util.function.Function;
 @Service
 public class JwtService {
 
-    // La clé secrète pour signer le token. À mettre dans application.properties !
-    // Exemple: application.jwt.secret=votreTresLongueCleSecreteDePlusDe256BitsPourLaSecurite
-    @Value("${application.jwt.secret}")
-    private String SECRET_KEY;
+    private final String secretKey;
+
+    private final long jwtExpiration;
+
+    public JwtService(@Value("${security.jwt.secret-key}") String secretKey,
+                      @Value("${security.jwt.expiration-time}") long jwtExpiration) {
+        this.secretKey = secretKey;
+        this.jwtExpiration = jwtExpiration;
+        System.out.println("Clé JWT chargée (ATTENTION À NE PAS FAIRE EN PROD) : " + secretKey);
+    }
 
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
@@ -37,14 +47,23 @@ public class JwtService {
     }
 
     public String generateToken(Map<String, Object> extraClaims, UserDetails userDetails) {
+        return buildToken(extraClaims, userDetails, jwtExpiration);
+    }
+
+    public long getExpirationTime() {
+        return jwtExpiration;
+    }
+
+    private String buildToken(Map<String, Object> extraClaims, UserDetails userDetails, long expiration) {
         return Jwts
                 .builder()
                 .setClaims(extraClaims)
                 .setSubject(userDetails.getUsername())
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24)) // Token valide 24 heures
+                .setExpiration(new Date(System.currentTimeMillis() + expiration))
                 .signWith(getSignInKey(), SignatureAlgorithm.HS256)
                 .compact();
+
     }
 
     public boolean isTokenValid(String token, UserDetails userDetails) {
@@ -67,10 +86,11 @@ public class JwtService {
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
+
     }
 
     private Key getSignInKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(SECRET_KEY);
+        byte[] keyBytes = Decoders.BASE64.decode(secretKey);
         return Keys.hmacShaKeyFor(keyBytes);
     }
 }

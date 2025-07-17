@@ -4,35 +4,45 @@ import com.NND.tech.Structure_Backend.DTO.AuthenticationRequest;
 import com.NND.tech.Structure_Backend.DTO.AuthenticationResponse;
 import com.NND.tech.Structure_Backend.DTO.RegisterRequest;
 import com.NND.tech.Structure_Backend.Service.AuthenticationService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
+@Tag(name = "Authentication", description = "Endpoints d'authentification")
 public class AuthController {
 
-    private final AuthenticationService service;
+    private final AuthenticationService authenticationService;
 
-    public AuthController(AuthenticationService service) {
-        this.service = service;
+    public AuthController(AuthenticationService authenticationService) {
+        this.authenticationService = authenticationService;
     }
 
-    /**
-     * Endpoint pour créer un nouvel administrateur.
-     * Seul un SUPER_ADMIN peut effectuer cette action.
-     */
-    @PostMapping("/register-admin")
-    @PreAuthorize("hasAuthority('SUPER_ADMIN')")
-    public ResponseEntity<AuthenticationResponse> registerAdmin(@RequestBody RegisterRequest request) {
-        return ResponseEntity.ok(service.registerAdmin(request));
-    }
-
-    /**
-     * Endpoint pour authentifier un utilisateur (Admin ou Super Admin).
-     */
     @PostMapping("/login")
-    public ResponseEntity<AuthenticationResponse> authenticate(@RequestBody AuthenticationRequest request) {
-        return ResponseEntity.ok(service.authenticate(request));
+    @Operation(
+            summary = "Connexion utilisateur",
+            description = "Authentifie un utilisateur (Admin ou Super Admin) et retourne un token JWT"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Connexion réussie"),
+            @ApiResponse(responseCode = "401", description = "Identifiants invalides")
+    })
+    public ResponseEntity<AuthenticationResponse> login(@RequestBody AuthenticationRequest request) {
+        AuthenticationResponse response = authenticationService.authenticate(request);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/register")
+    @Operation(
+            summary = "Inscription utilisateur",
+            description = "Crée un nouveau compte utilisateur (Client par défaut) et retourne un token JWT"
+    )
+    public ResponseEntity<AuthenticationResponse> register(@RequestBody RegisterRequest request) {
+        AuthenticationResponse response = authenticationService.register(request);
+        return ResponseEntity.ok(response);
     }
 }
