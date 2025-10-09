@@ -124,7 +124,7 @@ class StructureServiceTest {
         assertEquals(updatedDto.getName(), result.getName());
         assertEquals(updatedDto.getAddress(), result.getAddress());
         assertFalse(result.isActive());
-        verify(structureRepository, times(1)).findById(structureId);
+        verify(structureRepository, times(1)).findByIdAndActiveTrue(structureId);
         verify(structureRepository, times(1)).save(any(Structure.class));
     }
 

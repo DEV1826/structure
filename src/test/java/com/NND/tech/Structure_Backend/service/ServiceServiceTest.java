@@ -19,6 +19,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -103,6 +104,15 @@ class ServiceServiceTest {
         when(serviceRepository.findByIdAndActiveTrue(serviceId)).thenReturn(Optional.of(testService));
         when(serviceRepository.existsByNameAndStructureId(anyString(), anyLong())).thenReturn(false);
         when(serviceRepository.save(any(ServiceEntity.class))).thenReturn(testService);
+        doAnswer(invocation -> {
+            ServiceDto dto = invocation.getArgument(0);
+            ServiceEntity entity = invocation.getArgument(1);
+            entity.setName(dto.getName());
+            entity.setDescription(dto.getDescription());
+            entity.setPrice(dto.getPrice());
+            entity.setDuration(dto.getDuration());
+            return null;
+        }).when(serviceMapper).updateFromDto(any(ServiceDto.class), any(ServiceEntity.class));
         when(serviceMapper.toDto(any(ServiceEntity.class))).thenAnswer(invocation -> {
             ServiceEntity s = invocation.getArgument(0);
             testServiceDto.setName(s.getName());
