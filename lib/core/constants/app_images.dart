@@ -6,10 +6,10 @@ class AppImages {
   static const String _basePath = 'assets/images';
 
   // Images du carrousel d'accueil
-  static const String welcome1 = '$_basePath/welcome_1.jpg';
-  static const String welcome2 = '$_basePath/welcome_2.jpg';
-  static const String welcome3 = '$_basePath/welcome_3.jpg';
-  static const String welcome4 = '$_basePath/welcome_4.jpg';
+  static const String welcome1 = '$_basePath/welcome_1.jfif';
+  static const String welcome2 = '$_basePath/welcome_2.jfif';
+  static const String welcome3 = '$_basePath/welcome_3.jfif';
+  static const String welcome4 = '$_basePath/welcome_4.jfif';
 
   // Liste de toutes les images du carrousel
   static List<String> get welcomeCarouselImages => [welcome1, welcome2, welcome3, welcome4];

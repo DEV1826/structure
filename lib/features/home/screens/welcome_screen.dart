@@ -211,11 +211,11 @@ class WelcomeCard extends StatelessWidget {
   });
   
   // Vérifie si le chemin de l'image est valide
-  bool get _isValidImage => 
-      imagePath.isNotEmpty && 
-      !imagePath.endsWith('.jpg') && 
-      !imagePath.endsWith('.png') && 
-      !imagePath.endsWith('.jpeg');
+  bool get _isValidImage {
+    if (imagePath.isEmpty) return false;
+    final p = imagePath.toLowerCase();
+    return p.endsWith('.png') || p.endsWith('.jpg') || p.endsWith('.jpeg') || p.endsWith('.jfif');
+  }
 
   @override
   Widget build(BuildContext context) {

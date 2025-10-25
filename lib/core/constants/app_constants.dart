@@ -1,4 +1,14 @@
 class AppConstants {
+
+  //URL de base de l'API Spring Boot
+  static const String apiBaseUrl = 'http://10.0.2.2:8080/api'; // Pour émulateur Android
+  // Pour iOS ou appareil physique, utilisez l'IP de votre machine
+  // static const String apiBaseUrl = 'http://VOTRE_IP:8080/api';
+  
+  // Endpoints API
+  static const String login = '/auth/login';
+  static const String registerAdmin = '/auth/register-admin';
+  // Ajoutez d'autres endpoints ici
   // Durées d'animation
   static const Duration defaultAnimationDuration = Duration(milliseconds: 300);
   static const Duration buttonPressAnimationDuration = Duration(milliseconds: 100);
