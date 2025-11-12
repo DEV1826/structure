@@ -30,6 +30,14 @@ public class Transaction {
     
     private String description;
     
+    // Optional order id from external payment system (e.g., CampostPay)
+    @Column(name = "order_id")
+    private String orderId;
+    
+    // Optional status synchronized with payment provider (PENDING, SUCCESS, FAILED)
+    @Column(name = "status")
+    private String status;
+    
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "service_id", nullable = false)
     private ServiceEntity service;
@@ -48,10 +56,12 @@ public class Transaction {
     public void confirm() {
         this.isConfirmed = true;
         this.confirmationDate = LocalDate.now();
+        this.status = "SUCCESS";
     }
     
     public void cancel() {
         this.isConfirmed = false;
         this.confirmationDate = null;
+        this.status = "FAILED";
     }
 }

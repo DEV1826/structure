@@ -34,8 +34,10 @@ public class SecurityConfig {
             "/swagger-resources/**",
             "/webjars/**",
             "/api/structures/**",
-            "/api/paiements/initier",
-            "/api/webhooks/**"
+            "/api/paiements/**",
+            "/api/paiements/find/**",
+            "/api/webhooks/**",
+            "/api/paiements/webhooks/**"
     };
 
     @Bean

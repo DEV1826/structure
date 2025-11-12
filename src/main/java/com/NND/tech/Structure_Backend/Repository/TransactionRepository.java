@@ -85,4 +85,6 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
      * @return liste des transactions pour cette structure
      */
     List<Transaction> findByStructureId(Long structureId);
+
+    java.util.Optional<Transaction> findFirstByOrderId(String orderId);
 }

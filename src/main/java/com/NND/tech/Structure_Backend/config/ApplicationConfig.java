@@ -16,6 +16,8 @@ import org.springframework.security.core.userdetails.User; // Spring Security Us
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import java.util.Collections;
+ import org.springframework.web.client.RestTemplate;
+ import org.springframework.http.client.SimpleClientHttpRequestFactory;
 
 @Configuration
 public class ApplicationConfig {
@@ -62,6 +64,15 @@ public class ApplicationConfig {
 
         return authProvider;
     }
+
+    @Bean
+    public RestTemplate restTemplate() {
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(15000); // 15s connect timeout
+        factory.setReadTimeout(45000);    // 45s read timeout
+        return new RestTemplate(factory);
+    }
 }
+
 
 
