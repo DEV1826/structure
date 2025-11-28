@@ -1,7 +1,7 @@
-package com.NND.tech.Structure_Backend.controller;
+package com.NND.tech.Structure_Backend.Controller;
 
 import com.NND.tech.Structure_Backend.DTO.StatsDto;
-import com.NND.tech.Structure_Backend.service.StatsService;
+import com.NND.tech.Structure_Backend.Service.StatsService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.ArraySchema;

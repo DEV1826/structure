@@ -1,9 +1,8 @@
-package com.NND.tech.Structure_Backend.service;
+package com.NND.tech.Structure_Backend.Service;
 
 import com.NND.tech.Structure_Backend.DTO.*;
+import com.NND.tech.Structure_Backend.Repository.TransactionRepository;
 import com.NND.tech.Structure_Backend.config.CampostProperties;
-import com.NND.tech.Structure_Backend.model.entity.Transaction;
-import com.NND.tech.Structure_Backend.repository.TransactionRepository;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;

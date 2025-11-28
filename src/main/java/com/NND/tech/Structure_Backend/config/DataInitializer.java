@@ -1,6 +1,6 @@
 package com.NND.tech.Structure_Backend.config;
 
-import com.NND.tech.Structure_Backend.repository.UserRepository;
+import com.NND.tech.Structure_Backend.Repository.UserRepository;
 import com.NND.tech.Structure_Backend.model.entity.RoleType;
 import com.NND.tech.Structure_Backend.model.entity.User;
 import org.springframework.beans.factory.annotation.Value;

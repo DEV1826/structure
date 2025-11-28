@@ -1,10 +1,10 @@
-package com.NND.tech.Structure_Backend.service;
+package com.NND.tech.Structure_Backend.Service;
 
 import com.NND.tech.Structure_Backend.DTO.TransactionDto;
 import com.NND.tech.Structure_Backend.Exception.ResourceNotFoundException;
 import com.NND.tech.Structure_Backend.mapper.TransactionMapper;
 import com.NND.tech.Structure_Backend.model.entity.Transaction;
-import com.NND.tech.Structure_Backend.repository.TransactionRepository;
+import com.NND.tech.Structure_Backend.Repository.TransactionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

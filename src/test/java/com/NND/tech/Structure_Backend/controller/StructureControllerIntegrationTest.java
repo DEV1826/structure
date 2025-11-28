@@ -3,7 +3,7 @@ package com.NND.tech.Structure_Backend.controller;
 import com.NND.tech.Structure_Backend.StructureBackendApplication;
 import com.NND.tech.Structure_Backend.DTO.StructureDto;
 import com.NND.tech.Structure_Backend.model.entity.Structure;
-import com.NND.tech.Structure_Backend.repository.StructureRepository;
+import com.NND.tech.Structure_Backend.Repository.StructureRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

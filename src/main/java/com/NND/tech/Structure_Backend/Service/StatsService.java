@@ -1,4 +1,4 @@
-package com.NND.tech.Structure_Backend.service;
+package com.NND.tech.Structure_Backend.Service;
 
 import com.NND.tech.Structure_Backend.config.CacheConfig;
 import com.NND.tech.Structure_Backend.DTO.StatsDto;

@@ -1,8 +1,8 @@
-package com.NND.tech.Structure_Backend.controller;
+package com.NND.tech.Structure_Backend.Controller;
 
 import com.NND.tech.Structure_Backend.DTO.StructureRequest;
 import com.NND.tech.Structure_Backend.DTO.StructureDto;
-import com.NND.tech.Structure_Backend.service.StructureService;
+import com.NND.tech.Structure_Backend.Service.StructureService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

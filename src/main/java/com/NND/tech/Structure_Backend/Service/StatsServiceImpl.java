@@ -1,12 +1,11 @@
-package com.NND.tech.Structure_Backend.service;
+package com.NND.tech.Structure_Backend.Service;
 
 import com.NND.tech.Structure_Backend.config.CacheConfig;
 import com.NND.tech.Structure_Backend.DTO.StatsDto;
 import com.NND.tech.Structure_Backend.model.entity.Structure;
-import com.NND.tech.Structure_Backend.model.entity.Transaction;
-import com.NND.tech.Structure_Backend.repository.StructureRepository;
-import com.NND.tech.Structure_Backend.repository.TransactionRepository;
-import com.NND.tech.Structure_Backend.repository.UserRepository;
+import com.NND.tech.Structure_Backend.Repository.StructureRepository;
+import com.NND.tech.Structure_Backend.Repository.TransactionRepository;
+import com.NND.tech.Structure_Backend.Repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -16,11 +15,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
-import java.time.YearMonth;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
+
 
 @Service
 @RequiredArgsConstructor

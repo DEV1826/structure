@@ -1,7 +1,5 @@
 package com.NND.tech.Structure_Backend.config;
 
-import com.NND.tech.Structure_Backend.repository.UtilisateurRepository;
-import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -11,13 +9,15 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.core.userdetails.User; // Spring Security User
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import java.util.Collections;
  import org.springframework.web.client.RestTemplate;
- import org.springframework.http.client.SimpleClientHttpRequestFactory;
+
+import com.NND.tech.Structure_Backend.Repository.UtilisateurRepository;
+
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 
 @Configuration
 public class ApplicationConfig {

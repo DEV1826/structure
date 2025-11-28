@@ -1,15 +1,13 @@
-package com.NND.tech.Structure_Backend.service;
+package com.NND.tech.Structure_Backend.Service;
 
 import com.NND.tech.Structure_Backend.DTO.AuthenticationRequest;
 import com.NND.tech.Structure_Backend.DTO.AuthenticationResponse;
 import com.NND.tech.Structure_Backend.DTO.RegisterRequest;
 import com.NND.tech.Structure_Backend.config.JwtService;
-import com.NND.tech.Structure_Backend.Exception.ResourceNotFoundException;
 import com.NND.tech.Structure_Backend.model.entity.RoleType;
-import com.NND.tech.Structure_Backend.model.entity.Structure;
 import com.NND.tech.Structure_Backend.model.entity.User;
-import com.NND.tech.Structure_Backend.repository.StructureRepository;
-import com.NND.tech.Structure_Backend.repository.UserRepository;
+import com.NND.tech.Structure_Backend.Repository.StructureRepository;
+import com.NND.tech.Structure_Backend.Repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -19,7 +17,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Optional;
+
 import java.util.logging.Level;
 import java.util.logging.Logger;
 

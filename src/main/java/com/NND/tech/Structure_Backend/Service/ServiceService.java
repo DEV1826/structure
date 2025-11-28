@@ -1,4 +1,4 @@
-package com.NND.tech.Structure_Backend.service;
+package com.NND.tech.Structure_Backend.Service;
 
 import com.NND.tech.Structure_Backend.DTO.ServiceDto;
 import com.NND.tech.Structure_Backend.Exception.ResourceNotFoundException;
@@ -6,8 +6,8 @@ import com.NND.tech.Structure_Backend.mapper.ServiceMapper;
 import com.NND.tech.Structure_Backend.model.entity.ServiceEntity;
 // Utilisation du nom complet pour éviter l'ambiguïté avec l'annotation @Service
 import com.NND.tech.Structure_Backend.model.entity.Structure;
-import com.NND.tech.Structure_Backend.repository.ServiceRepository;
-import com.NND.tech.Structure_Backend.repository.StructureRepository;
+import com.NND.tech.Structure_Backend.Repository.ServiceRepository;
+import com.NND.tech.Structure_Backend.Repository.StructureRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

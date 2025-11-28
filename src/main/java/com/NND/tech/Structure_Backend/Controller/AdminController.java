@@ -1,8 +1,9 @@
-package com.NND.tech.Structure_Backend.controller;
+package com.NND.tech.Structure_Backend.Controller;
 
 import com.NND.tech.Structure_Backend.DTO.ServiceProduitRequest;
-import com.NND.tech.Structure_Backend.service.ServiceProduitService;
 import com.NND.tech.Structure_Backend.model.entity.ServiceEntity;
+import com.NND.tech.Structure_Backend.Service.ServiceProduitService;
+
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

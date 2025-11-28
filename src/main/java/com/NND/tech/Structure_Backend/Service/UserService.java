@@ -1,10 +1,11 @@
-package com.NND.tech.Structure_Backend.service;
+package com.NND.tech.Structure_Backend.Service;
 
 import com.NND.tech.Structure_Backend.DTO.UserDto;
 import com.NND.tech.Structure_Backend.Exception.ResourceNotFoundException;
+import com.NND.tech.Structure_Backend.Repository.UserRepository;
 import com.NND.tech.Structure_Backend.mapper.UserMapper;
 import com.NND.tech.Structure_Backend.model.entity.User;
-import com.NND.tech.Structure_Backend.repository.UserRepository;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;

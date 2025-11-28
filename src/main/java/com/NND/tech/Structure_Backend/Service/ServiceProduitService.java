@@ -1,15 +1,14 @@
-package com.NND.tech.Structure_Backend.service;
+package com.NND.tech.Structure_Backend.Service;
 
 import com.NND.tech.Structure_Backend.DTO.ServiceProduitRequest;
-import com.NND.tech.Structure_Backend.repository.ServiceRepository;
-import com.NND.tech.Structure_Backend.repository.UserRepository;
+import com.NND.tech.Structure_Backend.Repository.ServiceRepository;
+import com.NND.tech.Structure_Backend.Repository.UserRepository;
 import com.NND.tech.Structure_Backend.model.entity.ServiceEntity;
 import com.NND.tech.Structure_Backend.model.entity.Structure;
 import com.NND.tech.Structure_Backend.model.entity.User;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
 
 @Service
 public class ServiceProduitService {

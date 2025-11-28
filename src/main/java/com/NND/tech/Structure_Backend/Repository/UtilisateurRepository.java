@@ -1,4 +1,4 @@
-package com.NND.tech.Structure_Backend.repository;
+package com.NND.tech.Structure_Backend.Repository;
 
 import com.NND.tech.Structure_Backend.model.entity.User;
 import com.NND.tech.Structure_Backend.model.entity.RoleType;

@@ -1,7 +1,7 @@
-package com.NND.tech.Structure_Backend.controller;
+package com.NND.tech.Structure_Backend.Controller;
 
 import com.NND.tech.Structure_Backend.DTO.TransactionDto;
-import com.NND.tech.Structure_Backend.service.TransactionService;
+import com.NND.tech.Structure_Backend.Service.TransactionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

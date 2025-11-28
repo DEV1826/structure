@@ -1,12 +1,12 @@
 package com.NND.tech.Structure_Backend.config;
 
+import com.NND.tech.Structure_Backend.Repository.ServiceRepository;
+import com.NND.tech.Structure_Backend.Repository.StructureRepository;
+import com.NND.tech.Structure_Backend.Repository.UserRepository;
 import com.NND.tech.Structure_Backend.model.entity.RoleType;
 import com.NND.tech.Structure_Backend.model.entity.ServiceEntity;
 import com.NND.tech.Structure_Backend.model.entity.Structure;
 import com.NND.tech.Structure_Backend.model.entity.User;
-import com.NND.tech.Structure_Backend.repository.ServiceRepository;
-import com.NND.tech.Structure_Backend.repository.StructureRepository;
-import com.NND.tech.Structure_Backend.repository.UserRepository;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;

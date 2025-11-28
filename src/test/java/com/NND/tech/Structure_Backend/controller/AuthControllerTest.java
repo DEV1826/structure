@@ -1,9 +1,10 @@
 package com.NND.tech.Structure_Backend.controller;
 
+import com.NND.tech.Structure_Backend.Controller.AuthController;
 import com.NND.tech.Structure_Backend.DTO.AuthenticationRequest;
 import com.NND.tech.Structure_Backend.DTO.AuthenticationResponse;
 import com.NND.tech.Structure_Backend.DTO.RegisterRequest;
-import com.NND.tech.Structure_Backend.service.AuthenticationService;
+import com.NND.tech.Structure_Backend.Service.AuthenticationService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

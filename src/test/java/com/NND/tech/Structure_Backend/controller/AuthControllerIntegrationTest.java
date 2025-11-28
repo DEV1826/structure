@@ -3,7 +3,7 @@ package com.NND.tech.Structure_Backend.controller;
 import com.NND.tech.Structure_Backend.StructureBackendApplication;
 import com.NND.tech.Structure_Backend.model.entity.RoleType;
 import com.NND.tech.Structure_Backend.model.entity.User;
-import com.NND.tech.Structure_Backend.repository.UtilisateurRepository;
+import com.NND.tech.Structure_Backend.Repository.UtilisateurRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

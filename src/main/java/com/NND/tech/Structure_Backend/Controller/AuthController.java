@@ -1,9 +1,9 @@
-package com.NND.tech.Structure_Backend.controller;
+package com.NND.tech.Structure_Backend.Controller;
 
 import com.NND.tech.Structure_Backend.DTO.AuthenticationRequest;
 import com.NND.tech.Structure_Backend.DTO.AuthenticationResponse;
 import com.NND.tech.Structure_Backend.DTO.RegisterRequest;
-import com.NND.tech.Structure_Backend.service.AuthenticationService;
+import com.NND.tech.Structure_Backend.Service.AuthenticationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;

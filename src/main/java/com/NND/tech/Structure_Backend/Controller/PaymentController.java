@@ -1,13 +1,13 @@
-package com.NND.tech.Structure_Backend.controller;
+package com.NND.tech.Structure_Backend.Controller;
 
 import com.NND.tech.Structure_Backend.DTO.*;
 import com.NND.tech.Structure_Backend.model.entity.Transaction;
 import com.NND.tech.Structure_Backend.model.entity.ServiceEntity;
 import com.NND.tech.Structure_Backend.model.entity.Structure;
-import com.NND.tech.Structure_Backend.repository.TransactionRepository;
-import com.NND.tech.Structure_Backend.repository.ServiceRepository;
-import com.NND.tech.Structure_Backend.repository.StructureRepository;
-import com.NND.tech.Structure_Backend.service.CampostPaymentService;
+import com.NND.tech.Structure_Backend.Repository.TransactionRepository;
+import com.NND.tech.Structure_Backend.Repository.ServiceRepository;
+import com.NND.tech.Structure_Backend.Repository.StructureRepository;
+import com.NND.tech.Structure_Backend.Service.CampostPaymentService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;

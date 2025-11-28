@@ -4,7 +4,9 @@ import com.NND.tech.Structure_Backend.DTO.StructureDto;
 import com.NND.tech.Structure_Backend.Exception.ResourceNotFoundException;
 import com.NND.tech.Structure_Backend.mapper.StructureMapper;
 import com.NND.tech.Structure_Backend.model.entity.Structure;
-import com.NND.tech.Structure_Backend.repository.StructureRepository;
+import com.NND.tech.Structure_Backend.Repository.StructureRepository;
+import com.NND.tech.Structure_Backend.Service.StructureService;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

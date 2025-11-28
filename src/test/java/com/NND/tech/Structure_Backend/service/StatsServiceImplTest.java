@@ -2,9 +2,9 @@ package com.NND.tech.Structure_Backend.service;
 
 import com.NND.tech.Structure_Backend.DTO.StatsDto;
 import com.NND.tech.Structure_Backend.model.entity.Structure;
-import com.NND.tech.Structure_Backend.repository.StructureRepository;
-import com.NND.tech.Structure_Backend.repository.TransactionRepository;
-import com.NND.tech.Structure_Backend.repository.UserRepository;
+import com.NND.tech.Structure_Backend.Repository.StructureRepository;
+import com.NND.tech.Structure_Backend.Repository.TransactionRepository;
+import com.NND.tech.Structure_Backend.Repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

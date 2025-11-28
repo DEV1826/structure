@@ -1,7 +1,7 @@
-package com.NND.tech.Structure_Backend.controller;
+package com.NND.tech.Structure_Backend.Controller;
 
 import com.NND.tech.Structure_Backend.DTO.ServiceDto;
-import com.NND.tech.Structure_Backend.service.ServiceService;
+import com.NND.tech.Structure_Backend.Service.ServiceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
