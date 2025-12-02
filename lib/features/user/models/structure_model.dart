@@ -2,24 +2,61 @@ import 'package:equatable/equatable.dart';
 import 'package:meta/meta.dart';
 
 class OpeningHours {
-  final Map<String, String> hours; // Map of day to hours (e.g., 'monday': '09:00 - 18:00')
+  final Map<String, String>
+  hours; // Map of day to hours (e.g., 'monday': '09:00 - 18:00')
 
   const OpeningHours({required this.hours});
 
   factory OpeningHours.fromMap(Map<String, dynamic> map) {
-    return OpeningHours(
-      hours: Map<String, String>.from(map['hours'] ?? {}),
-    );
+    return OpeningHours(hours: Map<String, String>.from(map['hours'] ?? {}));
   }
 
   Map<String, dynamic> toMap() {
-    return {
-      'hours': hours,
-    };
+    return {'hours': hours};
   }
 }
 
 class StructureModel extends Equatable {
+  // Factory constructor pour créer une instance à partir d'un JSON
+  factory StructureModel.fromJson(Map<String, dynamic> json) {
+    return StructureModel(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      description: json['description'] as String?,
+      address: json['address'] as String?,
+      city: json['city'] as String?,
+      country: json['country'] as String?,
+      phoneNumber: json['phoneNumber'] as String?,
+      email: json['email'] as String?,
+      website: json['website'] as String?,
+      imageUrl: json['imageUrl'] as String?,
+      latitude: json['latitude']?.toDouble(),
+      longitude: json['longitude']?.toDouble(),
+      serviceIds: json['serviceIds'] != null
+          ? List<String>.from(json['serviceIds'] as List)
+          : null,
+      isActive: json['isActive'] as bool? ?? true,
+      isOpen: json['isOpen'] as bool? ?? false,
+      categories: json['categories'] != null
+          ? List<String>.from(json['categories'] as List)
+          : const [],
+      distance: json['distance']?.toDouble(),
+      openingHours: json['openingHours'] != null
+          ? OpeningHours.fromMap(
+              Map<String, dynamic>.from(json['openingHours'] as Map),
+            )
+          : null,
+      rating: (json['rating'] as num?)?.toDouble() ?? 0.0,
+      reviewCount: (json['reviewCount'] as num?)?.toInt() ?? 0,
+      createdAt: json['createdAt'] != null
+          ? DateTime.parse(json['createdAt'] as String)
+          : null,
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.parse(json['updatedAt'] as String)
+          : null,
+    );
+  }
+
   final String id;
   final String name;
   final String? description;
@@ -82,16 +119,16 @@ class StructureModel extends Equatable {
       imageUrl: map['imageUrl'] as String?,
       latitude: map['latitude']?.toDouble(),
       longitude: map['longitude']?.toDouble(),
-      serviceIds: map['serviceIds'] != null 
+      serviceIds: map['serviceIds'] != null
           ? List<String>.from(map['serviceIds'] as List)
           : null,
       isActive: map['isActive'] as bool? ?? true,
       isOpen: map['isOpen'] as bool? ?? false,
-      categories: map['categories'] != null 
+      categories: map['categories'] != null
           ? List<String>.from(map['categories'] as List)
           : [],
       distance: map['distance']?.toDouble(),
-      openingHours: map['openingHours'] != null 
+      openingHours: map['openingHours'] != null
           ? OpeningHours.fromMap(Map<String, dynamic>.from(map['openingHours']))
           : null,
       rating: (map['rating'] as num?)?.toDouble() ?? 0.0,
@@ -180,30 +217,31 @@ class StructureModel extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        name,
-        description,
-        address,
-        city,
-        country,
-        phoneNumber,
-        email,
-        website,
-        imageUrl,
-        latitude,
-        longitude,
-        serviceIds,
-        isActive,
-        isOpen,
-        categories,
-        distance,
-        openingHours,
-        rating,
-        reviewCount,
-        createdAt,
-        updatedAt,
-      ];
+    id,
+    name,
+    description,
+    address,
+    city,
+    country,
+    phoneNumber,
+    email,
+    website,
+    imageUrl,
+    latitude,
+    longitude,
+    serviceIds,
+    isActive,
+    isOpen,
+    categories,
+    distance,
+    openingHours,
+    rating,
+    reviewCount,
+    createdAt,
+    updatedAt,
+  ];
 
   @override
-  String toString() => 'StructureModel(id: $id, name: $name, isActive: $isActive)';
+  String toString() =>
+      'StructureModel(id: $id, name: $name, isActive: $isActive)';
 }

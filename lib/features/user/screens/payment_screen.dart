@@ -1,19 +1,22 @@
-import 'dart:math';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:structure_mobile/core/constants/app_constants.dart';
-import 'package:structure_mobile/core/widgets/loading_widget.dart';
-import 'package:structure_mobile/features/user/models/models.dart';
-import 'package:structure_mobile/features/user/widgets/payment_form.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../payment/models/payment_data.dart';
+import '../../payment/screens/payment_success_screen.dart';
+import '../../payment/services/payment_service.dart';
+import '../../payment/services/structure_service.dart';
+import '../models/structure_model.dart';
 
 class PaymentScreen extends StatefulWidget {
   final StructureModel structure;
-  final List<Map<String, dynamic>>
-  selectedServices; // Liste des services sélectionnés avec quantités
+  final List<Map<String, dynamic>> selectedServices;
   final double totalAmount;
 
   const PaymentScreen({
-    super.key,
+    super.key, // Corrigé: utilisation de super.key
     required this.structure,
     required this.selectedServices,
     required this.totalAmount,
@@ -24,389 +27,477 @@ class PaymentScreen extends StatefulWidget {
 }
 
 class _PaymentScreenState extends State<PaymentScreen> {
+  late final PaymentService _paymentService;
+  late final StructureService _structureService;
   final _formKey = GlobalKey<FormState>();
-  final _phoneController = TextEditingController();
   final _nameController = TextEditingController();
-  final _secretCodeController = TextEditingController();
-  final bool _isLoading = false;
-  bool _isProcessing = false;
-  bool _isSuccess = false;
-  String? _errorMessage;
-  PaymentMethod _selectedPaymentMethod = PaymentMethod.mtnMoney;
+  final _phoneController = TextEditingController();
+  final _emailController = TextEditingController();
 
-  @override
-  void dispose() {
-    _phoneController.dispose();
-    _nameController.dispose();
-    _secretCodeController.dispose();
-    super.dispose();
+  bool _isLoading = false;
+  String? _errorMessage;
+  StreamSubscription<PaymentData>? _paymentSubscription;
+
+  void _handleError(String message) {
+    if (!mounted) return;
+
+    // Traduction des messages d'erreur courants
+    String friendlyMessage = message;
+
+    if (message.contains('Erreur de connexion') ||
+        message.contains('timeout')) {
+      friendlyMessage =
+          'Impossible de se connecter au serveur. Vérifiez votre connexion Internet et réessayez.';
+    } else if (message.contains('400') || message.contains('invalide')) {
+      friendlyMessage =
+          'Les informations fournies sont incorrectes. Veuillez vérifier vos saisies.';
+    } else if (message.contains('404')) {
+      friendlyMessage =
+          'La ressource demandée est introuvable. Veuillez réessayer plus tard.';
+    } else if (message.contains('500')) {
+      friendlyMessage =
+          'Une erreur est survenue sur le serveur. Notre équipe a été notifiée.';
+    } else if (message.contains('paiement a échoué')) {
+      friendlyMessage =
+          'Le paiement n\'a pas pu être traité. Veuillez réessayer ou utiliser un autre moyen de paiement.';
+    } else if (message.contains('expiré')) {
+      friendlyMessage =
+          'Le délai de paiement a expiré. Veuillez recommencer le processus.';
+    }
+
+    setState(() {
+      _isLoading = false;
+      _errorMessage = friendlyMessage;
+    });
+
+    // Afficher un snackbar en plus du message d'erreur
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(friendlyMessage),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 5),
+        action: SnackBarAction(
+          label: 'OK',
+          textColor: Colors.white,
+          onPressed: () {
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          },
+        ),
+      ),
+    );
+  }
+
+  void _handleSuccess(PaymentData paymentData) {
+    if (!mounted) return;
+
+    setState(() {
+      _isLoading = false;
+      _errorMessage = null; // Effacer les erreurs précédentes
+    });
+
+    // Afficher un message de succès
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Paiement initié avec succès !'),
+        backgroundColor: Colors.green,
+        duration: Duration(seconds: 2),
+      ),
+    );
+
+    // Navigation vers l'écran de succès après un court délai
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => PaymentSuccessScreen(paymentData: paymentData),
+        ),
+      );
+    });
+  }
+
+  void _checkPaymentStatus(String orderId) {
+    _paymentSubscription?.cancel();
+
+    _paymentSubscription =
+        Stream.periodic(
+              const Duration(seconds: 5),
+              (_) => _paymentService.verifyPayment(orderId),
+            )
+            .asyncMap((future) => future)
+            .listen(
+              (paymentData) {
+                if (paymentData.status == 'SUCCESS') {
+                  _handleSuccess(paymentData);
+                } else if (paymentData.status == 'FAILED') {
+                  _handleError('Le paiement a échoué');
+                }
+              },
+              onError: (error) {
+                _handleError(
+                  'Erreur lors de la vérification du paiement: $error',
+                );
+              },
+              cancelOnError: true,
+            );
+
+    // Arrêter le polling après 30 minutes
+    Future.delayed(const Duration(minutes: 30), () {
+      if (mounted) {
+        _paymentSubscription?.cancel();
+        _handleError('Le paiement a expiré');
+      }
+    });
   }
 
   Future<void> _processPayment() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() {
-      _isProcessing = true;
+      _isLoading = true;
       _errorMessage = null;
     });
 
     try {
-      // Simuler un traitement de paiement
-      await Future.delayed(const Duration(seconds: 2));
+      final paymentData = await _paymentService.initiatePayment(
+        amount: widget.totalAmount,
+        serviceId: widget.structure.id,
+        structureId: widget.structure.id,
+        customerName: _nameController.text,
+        customerPhone: _phoneController.text,
+        customerEmail: _emailController.text,
+      );
 
-      // Simuler une erreur aléatoire (10% de chance)
-      final hasError = Random().nextInt(10) == 0;
-
-      if (hasError) {
-        throw Exception(
-          'Échec du traitement du paiement. Veuillez réessayer ou utiliser un autre moyen de paiement.',
+      if (paymentData.paymentLink.isNotEmpty) {
+        final launched = await _paymentService.launchPaymentUrl(
+          paymentData.paymentLink,
         );
+
+        if (launched) {
+          if (paymentData.orderId.isNotEmpty) {
+            _checkPaymentStatus(paymentData.orderId);
+          } else {
+            throw Exception(
+              'ID de commande manquant dans la réponse du serveur',
+            );
+          }
+        } else {
+          throw Exception('Impossible d\'ouvrir la page de paiement');
+        }
+      } else {
+        throw Exception('Lien de paiement non fourni par le serveur');
       }
-
-      // Paiement réussi
-      if (!mounted) return;
-
-      // Naviguer vers l'écran de succès
-      final transactionId = 'TXN-${DateTime.now().millisecondsSinceEpoch}';
-
-      // Envoyer les données de transaction au serveur (simulé)
-      await _saveTransaction(transactionId);
-
-      setState(() {
-        _isSuccess = true;
-      });
-
-      // Afficher la confirmation de paiement
-      _showPaymentSuccess(transactionId);
     } catch (e) {
-      setState(() {
-        _errorMessage = e.toString().replaceAll('Exception: ', '');
-      });
-
-      // Afficher l'erreur à l'utilisateur
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(_errorMessage ?? 'Une erreur est survenue'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
-      }
+      _handleError('Erreur lors du traitement du paiement: $e');
     } finally {
       if (mounted) {
         setState(() {
-          _isProcessing = false;
+          _isLoading = false;
         });
       }
     }
   }
 
-  Future<void> _saveTransaction(String transactionId) async {
-    // Ici, vous enverriez normalement les détails de la transaction à votre backend
-    await Future.delayed(const Duration(seconds: 1));
-
-    // Simuler l'enregistrement de la transaction
-    debugPrint('Transaction enregistrée: $transactionId');
+  @override
+  void initState() {
+    super.initState();
+    _initializeServices();
   }
 
-  void _showPaymentSuccess(String transactionId) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(AppConstants.mediumPadding),
-        decoration: BoxDecoration(
-          color: Theme.of(context).scaffoldBackgroundColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Icône de succès
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: Colors.green.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.check_circle,
-                color: Colors.green,
-                size: 50,
-              ),
-            ),
-
-            const SizedBox(height: AppConstants.mediumPadding),
-
-            // Titre
-            Text(
-              'Paiement réussi !',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: Colors.green,
-              ),
-            ),
-
-            const SizedBox(height: AppConstants.smallPadding),
-
-            // Message
-            Text(
-              'Votre paiement a été traité avec succès.',
-              style: Theme.of(context).textTheme.bodyLarge,
-              textAlign: TextAlign.center,
-            ),
-
-            const SizedBox(height: AppConstants.mediumPadding),
-
-            // Référence de transaction
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(AppConstants.mediumPadding),
-              decoration: BoxDecoration(
-                color: Theme.of(
-                  context,
-                ).colorScheme.surfaceVariant.withOpacity(0.5),
-                borderRadius: BorderRadius.circular(AppConstants.mediumRadius),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Référence',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    transactionId,
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: AppConstants.largePadding),
-
-            // Bouton de retour
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  // Retour à l'écran précédent
-                  Navigator.of(context).pop(true); // Retour avec succès
-                },
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(
-                      AppConstants.mediumRadius,
-                    ),
-                  ),
-                ),
-                child: const Text('Retour à l\'accueil'),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+  Future<void> _initializeServices() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final httpClient = http.Client();
+      _structureService = StructureService(client: httpClient, prefs: prefs);
+      _paymentService = PaymentService(
+        client: httpClient,
+        prefs: prefs,
+        structureService: _structureService,
+      );
+      _checkPendingPayments();
+      _testConnection();
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Erreur d\'initialisation: ${e.toString()}';
+          _isLoading = false;
+        });
+      }
+    }
   }
 
-  // Affiche l'écran de succès après un paiement réussi
-  Widget _buildSuccessScreen(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Paiement réussi'),
-        automaticallyImplyLeading: false,
-      ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(AppConstants.largePadding),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Icône de succès
-              Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.check_circle,
-                  color: Colors.green,
-                  size: 60,
-                ),
-              ),
+  Future<void> _testConnection() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
 
-              const SizedBox(height: AppConstants.largePadding),
+    try {
+      final isConnected = await _paymentService.testConnection();
+      if (!mounted) return;
 
-              // Titre
-              Text(
-                'Paiement effectué avec succès !',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.green,
-                ),
-                textAlign: TextAlign.center,
-              ),
+      if (isConnected) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('✅ Connecté au serveur avec succès')),
+        );
+      } else {
+        setState(() {
+          _errorMessage = 'Impossible de se connecter au serveur';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Erreur de connexion: $e';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
-              const SizedBox(height: AppConstants.mediumPadding),
+  Future<void> _checkPendingPayments() async {
+    try {
+      final lastOrderId = await _paymentService.getLastOrderId();
+      if (lastOrderId != null && mounted) {
+        debugPrint('Vérification du paiement en attente: $lastOrderId');
+        // Vous pouvez ajouter ici une logique pour vérifier l'état du dernier paiement
+      }
+    } catch (e) {
+      debugPrint('Erreur lors de la vérification des paiements en attente: $e');
+    }
+  }
 
-              // Message de confirmation
-              Text(
-                'Merci pour votre confiance. Votre paiement a été traité avec succès.',
-                style: Theme.of(context).textTheme.bodyLarge,
-                textAlign: TextAlign.center,
-              ),
-
-              const SizedBox(height: AppConstants.largePadding * 2),
-
-              // Bouton de retour à l'accueil
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    // Retour à l'écran d'accueil
-                    Navigator.of(context).popUntil((route) => route.isFirst);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(
-                        AppConstants.mediumRadius,
-                      ),
-                    ),
-                  ),
-                  child: const Text('Retour à l\'accueil'),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+  @override
+  void dispose() {
+    _paymentSubscription?.cancel();
+    _nameController.dispose();
+    _phoneController.dispose();
+    _emailController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_isSuccess) {
-      return _buildSuccessScreen(context);
-    }
-
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Paiement'),
-        leading: _isProcessing
-            ? const Center(
-                child: SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-              )
-            : null,
-      ),
+      appBar: AppBar(title: const Text('Paiement')),
       body: _isLoading
-          ? const Center(child: LoadingWidget())
+          ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
-              padding: const EdgeInsets.all(AppConstants.mediumPadding),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Formulaire de paiement
-                  PaymentForm(
-                    formKey: _formKey,
-                    phoneController: _phoneController,
-                    nameController: _nameController,
-                    secretCodeController: _secretCodeController,
-                    selectedServices: widget.selectedServices,
-                    totalAmount: widget.totalAmount,
-                    isEnabled: !_isProcessing,
-                    isProcessing: _isProcessing,
-                    onPaymentMethodSelected: (method) {
-                      setState(() => _selectedPaymentMethod = method);
-                    },
-                    selectedPaymentMethod: _selectedPaymentMethod,
-                    onPaymentSubmitted: _processPayment,
-                  ),
-
-                  if (_errorMessage != null) ...{
-                    const SizedBox(height: AppConstants.mediumPadding),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(AppConstants.mediumPadding),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.errorContainer,
-                        borderRadius: BorderRadius.circular(
-                          AppConstants.mediumRadius,
-                        ),
-                      ),
-                      child: Text(
-                        _errorMessage!,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onErrorContainer,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  },
-
-                  const SizedBox(height: AppConstants.largePadding),
-
-                  // Bouton de paiement
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: _isProcessing ? null : _processPayment,
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(
-                            AppConstants.mediumRadius,
-                          ),
-                        ),
-                      ),
-                      child: _isProcessing
-                          ? const SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2,
-                              ),
-                            )
-                          : const Text(
-                              'Payer maintenant',
-                              style: TextStyle(fontSize: 16),
+              padding: const EdgeInsets.all(16.0),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Informations de la structure et des services
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              widget.structure.name,
+                              style: Theme.of(context).textTheme.titleLarge,
                             ),
-                    ),
-                  ),
-
-                  const SizedBox(height: AppConstants.mediumPadding),
-
-                  // Sécurité des paiements
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.lock_outline,
-                        size: 16,
-                        color: Theme.of(context).textTheme.bodySmall?.color,
+                            const SizedBox(height: 8),
+                            ...widget.selectedServices.map(
+                              (service) => Padding(
+                                padding: const EdgeInsets.only(bottom: 8.0),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(service['name'] ?? ''),
+                                    Text(
+                                      '${service['price']} FCFA',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const Divider(),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  'Total à payer',
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.titleMedium,
+                                ),
+                                Text(
+                                  '${widget.totalAmount} FCFA',
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.titleMedium,
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Paiement sécurisé',
-                        style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Informations personnelles
+                    Text(
+                      'Vos informations',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Champ Nom complet
+                    TextFormField(
+                      controller: _nameController,
+                      decoration: const InputDecoration(
+                        labelText: 'Nom complet',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.person),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Veuillez entrer votre nom complet';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Champ Téléphone
+                    TextFormField(
+                      controller: _phoneController,
+                      decoration: const InputDecoration(
+                        labelText: 'Téléphone',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.phone),
+                        hintText: '6XXXXXXXX',
+                      ),
+                      keyboardType: TextInputType.phone,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Veuillez entrer votre numéro de téléphone';
+                        }
+                        if (!RegExp(r'^6[0-9]{8}$').hasMatch(value)) {
+                          return 'Numéro de téléphone invalide';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Champ Email (optionnel)
+                    TextFormField(
+                      controller: _emailController,
+                      decoration: const InputDecoration(
+                        labelText: 'Email (facultatif)',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.email),
+                      ),
+                      keyboardType: TextInputType.emailAddress,
+                      validator: (value) {
+                        if (value != null && value.isNotEmpty) {
+                          if (!RegExp(
+                            r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                          ).hasMatch(value)) {
+                            return 'Email invalide';
+                          }
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Bouton de test de connexion
+                    const SizedBox(height: 16),
+                    OutlinedButton.icon(
+                      onPressed: _isLoading ? null : _testConnection,
+                      icon: const Icon(Icons.wifi_find),
+                      label: const Text('Tester la connexion'),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(double.infinity, 50),
+                      ),
+                    ),
+
+                    // Affichage des messages d'erreur
+                    if (_errorMessage != null) ...[
+                      const SizedBox(height: 16),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.red.shade200),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.error_outline, color: Colors.red),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                _errorMessage!,
+                                style: TextStyle(color: Colors.red.shade800),
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(
+                                Icons.close,
+                                size: 20,
+                                color: Colors.red,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _errorMessage = null;
+                                });
+                              },
+                            ),
+                          ],
+                        ),
                       ),
                     ],
-                  ),
-                ],
+
+                    // Bouton de paiement
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton.icon(
+                        onPressed: _isLoading ? null : _processPayment,
+                        icon: const Icon(Icons.payment, size: 20),
+                        label: _isLoading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
+                                ),
+                              )
+                            : Text(
+                                'Payer ${widget.totalAmount} FCFA',
+                                style: const TextStyle(fontSize: 16),
+                              ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Theme.of(context).primaryColor,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          elevation: 2,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
     );

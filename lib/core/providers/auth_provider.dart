@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:structure_mobile/core/models/user_model.dart';
+import 'package:structure_mobile/core/network/api_service.dart';
 
 class AuthProvider extends ChangeNotifier {
   User? _user;
@@ -16,107 +18,49 @@ class AuthProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
 
+  // Initialisation
+  Future<void> init(SharedPreferences prefs) async {
+    _token = prefs.getString('jwt_token');
+    if (_token != null) {
+      await tryAutoLogin();
+    }
+  }
+
   // Méthodes d'authentification
-  Future<void> login(
-    String email, 
-    String password, 
-    [bool isAdmin = false,
-    bool isSuperAdmin = false]
-  ) async {
+  Future<void> login(String email, String password) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      // Simulation de délai pour la connexion
-      await Future.delayed(const Duration(seconds: 1));
-      
-      // Vérification des identifiants
-      UserRole role = UserRole.client;
-      String? structureId;
-      String firstName = '';
-      String lastName = '';
-      
-      // Vérification des identifiants du super admin
-      if (email == 'superadmin@example.com' && password == 'password') {
-        role = UserRole.superAdmin;
-        firstName = 'Super';
-        lastName = 'Administrateur';
-        structureId = null; // Le super admin n'a pas de structure assignée
-      } 
-      // Vérification des identifiants admin ANTIC
-      else if (email == 'admin@antic.cm' && password == 'Antic@2023') {
-        role = UserRole.admin;
-        firstName = 'Admin';
-        lastName = 'ANTIC';
-        structureId = 'struct_antic_001';
+      final response = await ApiService.post('auth/login', {
+        'email': email,
+        'password': password,
+      });
+
+      if (response['success']) {
+        final token = response['data']['token'];
+        final userData = response['data']['user'] ?? response['data'];
+
+        // Sauvegarder le token
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('jwt_token', token);
+
+        // Mettre à jour l'utilisateur
+        _user = User(
+          id: userData['id'].toString(),
+          email: userData['email'],
+          firstName: userData['prenom'] ?? userData['firstName'] ?? '',
+          lastName: userData['nom'] ?? userData['lastName'] ?? '',
+          role: _parseUserRole(userData['role']),
+          structureId: userData['structureId'],
+        );
+        _token = token;
+      } else {
+        throw Exception(response['error'] ?? 'Échec de la connexion');
       }
-      // Vérification des identifiants admin MINADER
-      else if (email == 'admin@minader.cm' && password == 'Minader@2023') {
-        role = UserRole.admin;
-        firstName = 'Admin';
-        lastName = 'MINADER';
-        structureId = 'struct_minader_001';
-      }
-      // Vérification des identifiants admin MINEPIA
-      else if (email == 'admin@minepia.cm' && password == 'Minepia@2023') {
-        role = UserRole.admin;
-        firstName = 'Admin';
-        lastName = 'MINEPIA';
-        structureId = 'struct_minepia_001';
-      }
-      // Vérification des identifiants admin OBC
-      else if (email == 'admin@obc.cm' && password == 'Obc@2023') {
-        role = UserRole.admin;
-        firstName = 'Admin';
-        lastName = 'OBC';
-        structureId = 'struct_obc_001';
-      }
-      // Vérification des identifiants admin DOUANE
-      else if (email == 'admin@douane.cm' && password == 'Douane@2023') {
-        role = UserRole.admin;
-        firstName = 'Admin';
-        lastName = 'DOUANE';
-        structureId = 'struct_douane_001';
-      }
-      // Si on attend un admin/superadmin mais que les identifiants ne correspondent pas
-      else if (isAdmin || isSuperAdmin) {
-        throw Exception('''Identifiants administrateur invalides. Utilisez :
-- superadmin@example.com / password (super admin)
-- admin@antic.cm / Antic@2023 (admin ANTIC)
-- admin@minader.cm / Minader@2023 (admin MINADER)
-- admin@minepia.cm / Minepia@2023 (admin MINEPIA)
-- admin@obc.cm / Obc@2023 (admin OBC)
-- admin@douane.cm / Douane@2023 (admin DOUANE)''');
-      }
-      // Si c'est une connexion utilisateur standard (non utilisé pour l'instant)
-      else {
-        role = UserRole.client;
-        firstName = 'Utilisateur';
-        lastName = 'Standard';
-      }
-      
-      // Création de l'utilisateur
-      _user = User(
-        id: 'user_${email.replaceAll('@', '_').replaceAll('.', '_')}',
-        email: email,
-        firstName: firstName,
-        lastName: lastName,
-        role: role,
-        structureId: structureId,
-      );
-      
-      _token = 'token_${_user!.id}_${DateTime.now().millisecondsSinceEpoch}';
-      
-      debugPrint('Connexion réussie: ${_user?.email} (${_user?.role})');
-      if (structureId != null) {
-        debugPrint('Structure associée: $structureId');
-      }
-      
     } catch (e) {
-      _error = e.toString().contains('Exception: ') 
-          ? e.toString().replaceAll('Exception: ', '') 
-          : 'Échec de la connexion. Veuillez réessayer.';
+      _error = e.toString().replaceAll('Exception: ', '');
       rethrow;
     } finally {
       _isLoading = false;
@@ -124,27 +68,45 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> register(String email, String password, String firstName, String lastName) async {
+  Future<void> register(
+    String email,
+    String password,
+    String firstName,
+    String lastName,
+  ) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      // TODO: Implémenter l'appel API d'inscription
-      await Future.delayed(const Duration(seconds: 2)); // Simulation de délai
-      
-      // Simulation d'une inscription réussie
-      _user = User(
-        id: '1',
-        email: email,
-        firstName: firstName,
-        lastName: lastName,
-        role: UserRole.client,
-      );
-      _token = 'simulated_token';
-      
-      // TODO: Sauvegarder le token et les infos utilisateur localement
-      
+      final response = await ApiService.post('auth/register', {
+        'email': email,
+        'password': password,
+        'prenom': firstName,
+        'nom': lastName,
+      });
+
+      if (response['success']) {
+        final token = response['data']['token'];
+        final userData = response['data']['user'] ?? response['data'];
+
+        // Sauvegarder le token
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('jwt_token', token);
+
+        // Mettre à jour l'utilisateur
+        _user = User(
+          id: userData['id'].toString(),
+          email: userData['email'],
+          firstName: userData['prenom'] ?? userData['firstName'] ?? '',
+          lastName: userData['nom'] ?? userData['lastName'] ?? '',
+          role: _parseUserRole(userData['role'] ?? 'client'),
+          structureId: userData['structureId'],
+        );
+        _token = token;
+      } else {
+        throw Exception(response['error'] ?? 'Échec de l\'inscription');
+      }
     } catch (e) {
       _error = 'Échec de l\'inscription. Veuillez réessayer.';
       rethrow;
@@ -156,9 +118,14 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> logout() async {
     try {
-      // TODO: Implémenter la déconnexion côté serveur
-      await Future.delayed(const Duration(milliseconds: 300)); // Simulation de délai
-      debugPrint('Utilisateur déconnecté');
+      // Appeler l'API de déconnexion si nécessaire
+      // await ApiService.post('auth/logout', {});
+
+      // Supprimer le token
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('jwt_token');
+    } catch (e) {
+      // En cas d'erreur, on continue la déconnexion
     } finally {
       _user = null;
       _token = null;
@@ -168,8 +135,47 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<bool> tryAutoLogin() async {
-    // TODO: Vérifier si un token existe en local et le valider
-    await Future.delayed(const Duration(seconds: 1)); // Simulation de délai
-    return false; // Pour l'instant, on retourne toujours faux
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('jwt_token');
+
+    if (token != null) {
+      try {
+        final response = await ApiService.get('auth/me');
+
+        if (response['success']) {
+          final userData = response['data'];
+          _user = User(
+            id: userData['id'].toString(),
+            email: userData['email'],
+            firstName: userData['prenom'] ?? userData['firstName'] ?? '',
+            lastName: userData['nom'] ?? userData['lastName'] ?? '',
+            role: _parseUserRole(userData['role']),
+            structureId: userData['structureId'],
+          );
+          _token = token;
+          return true;
+        }
+      } catch (e) {
+        // En cas d'erreur, on considère que le token n'est plus valide
+        await prefs.remove('jwt_token');
+      }
+    }
+    return false;
+  }
+
+  // Méthode utilitaire pour convertir le rôle du serveur en enum
+  UserRole _parseUserRole(String role) {
+    if (role == null) return UserRole.client;
+
+    switch (role.toLowerCase()) {
+      case 'super_admin':
+      case 'superadmin':
+        return UserRole.superAdmin;
+      case 'admin':
+        return UserRole.admin;
+      case 'client':
+      default:
+        return UserRole.client;
+    }
   }
 }

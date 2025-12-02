@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:structure_mobile/core/network/api_service.dart';
 import 'package:structure_mobile/core/providers/auth_provider.dart';
 import 'package:structure_mobile/core/routes/app_router.dart';
 import 'package:structure_mobile/features/auth/login_screen.dart';
@@ -14,16 +16,21 @@ import 'package:structure_mobile/features/splash/splash_screen.dart';
 import 'package:structure_mobile/features/user/navigation/user_router.dart';
 import 'package:structure_mobile/themes/app_theme.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialiser SharedPreferences
+  final prefs = await SharedPreferences.getInstance();
+
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (context) => AuthProvider()),
-        // StructuresProvider nécessite un BuildContext pour fonctionner correctement
-        // On utilise un ProxyProvider pour s'assurer que le contexte est disponible
+        ChangeNotifierProvider(
+          create: (context) => AuthProvider()..init(prefs),
+        ),
         ChangeNotifierProxyProvider<AuthProvider, StructuresProvider>(
           create: (context) => StructuresProvider(context),
-          update: (_, authProvider, structuresProvider) => 
+          update: (_, authProvider, structuresProvider) =>
               structuresProvider!..updateAuth(authProvider),
         ),
         ChangeNotifierProvider(create: (context) => DashboardProvider()),
@@ -46,29 +53,22 @@ class MyApp extends StatelessWidget {
     );
   }
 
-  // Main router configuration
   static final GoRouter _router = GoRouter(
     initialLocation: AppRouter.splash,
-    debugLogDiagnostics: true, // Enable router debug logging
+    debugLogDiagnostics: true,
     routes: [
-      // Splash screen route
       GoRoute(
         path: AppRouter.splash,
         name: 'splash',
         pageBuilder: (context, state) =>
             MaterialPage(key: state.pageKey, child: const SplashScreen()),
       ),
-
-      // Welcome screen route
       GoRoute(
         path: AppRouter.welcome,
         name: 'welcome',
         pageBuilder: (context, state) =>
             MaterialPage(key: state.pageKey, child: const WelcomeScreen()),
       ),
-
-      // Authentication routes
-      // Route de connexion standard (utilisateur)
       GoRoute(
         path: AppRouter.login,
         name: 'login',
@@ -81,8 +81,6 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-
-      // Route de connexion administrateur
       GoRoute(
         path: '${AppRouter.login}/admin',
         name: 'admin-login',
@@ -95,8 +93,6 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-
-      // Route de connexion super administrateur
       GoRoute(
         path: '${AppRouter.login}/superadmin',
         name: 'superadmin-login',
@@ -109,8 +105,6 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-
-      // Admin dashboard route
       GoRoute(
         path: AppRouter.adminHome,
         name: 'admin-dashboard',
@@ -119,8 +113,6 @@ class MyApp extends StatelessWidget {
           child: const AdminDashboardScreen(),
         ),
       ),
-
-      // Admin structures route
       GoRoute(
         path: '${AppRouter.adminStructures}/:structureId',
         name: 'admin-structure-detail',
@@ -131,22 +123,38 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-
-      // User module routes
       ...UserRouter.routes,
-
-      // 404 - Page not found
       GoRoute(
         path: '/:pathMatch(.*)*',
         name: 'not-found',
         pageBuilder: (context, state) => MaterialPage(
           key: state.pageKey,
-          child: UserRouter.errorBuilder(context, state),
+          child: Scaffold(
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text(
+                    '404',
+                    style: TextStyle(fontSize: 48, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Page non trouvée',
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    onPressed: () => context.go(UserRouter.home),
+                    child: const Text('Retour à l\'accueil'),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     ],
-
-    // Error builder for unhandled routes
     errorBuilder: (context, state) => Scaffold(
       appBar: AppBar(title: const Text('Erreur')),
       body: Center(

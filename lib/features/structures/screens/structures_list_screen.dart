@@ -1,9 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:structure_mobile/core/routes/app_router.dart';
+import 'package:structure_mobile/core/widgets/custom_app_bar.dart';
 import 'package:structure_mobile/features/structures/models/structure_model.dart';
 import 'package:structure_mobile/features/structures/providers/structures_provider.dart';
-import 'package:structure_mobile/themes/app_theme.dart';
+
+// Modèle de données pour les options de tri
+class SortOption {
+  final String value;
+  final String label;
+
+  const SortOption({required this.value, required this.label});
+}
+
+// Options de tri disponibles
+final List<SortOption> sortOptions = [
+  const SortOption(value: 'name', label: 'Nom (A-Z)'),
+  const SortOption(value: 'rating', label: 'Note (plus haute d\'abord)'),
+];
 
 class StructuresListScreen extends StatefulWidget {
   const StructuresListScreen({super.key});
@@ -13,44 +26,53 @@ class StructuresListScreen extends StatefulWidget {
 }
 
 class _StructuresListScreenState extends State<StructuresListScreen> {
+  final ScrollController _scrollController = ScrollController();
   final TextEditingController _searchController = TextEditingController();
   bool _isSearching = false;
   String? _selectedCategory;
-  String? _selectedSortOption;
-  final _scrollController = ScrollController();
-  bool _isFilterOptionsVisible = false;
+  String? _selectedSortOption = 'name'; // Valeur par défaut
 
   @override
   void initState() {
     super.initState();
-    // Charger les structures au démarrage
+    _scrollController.addListener(_onScroll);
+    // Charger les structures après le premier rendu
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadStructures();
     });
-
-    // Écouter le défilement pour masquer/afficher le bouton de filtre
-    _scrollController.addListener(_onScroll);
   }
 
   @override
   void dispose() {
     _searchController.dispose();
-    _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     super.dispose();
+  }
+
+  void _toggleSearch() {
+    setState(() {
+      _isSearching = !_isSearching;
+      if (!_isSearching) {
+        _searchController.clear();
+        _applyFilters();
+      }
+    });
+  }
+
+  Future<void> _loadStructures() async {
+    final provider = context.read<StructuresProvider>();
+    if (provider.allStructures.isEmpty) {
+      await provider.loadStructures();
+    }
   }
 
   void _onScroll() {
     // Peut être utilisé pour ajouter du chargement infini plus tard
   }
 
-  Future<void> _loadStructures() async {
-    await context.read<StructuresProvider>().loadStructures();
-  }
-
   void _applyFilters() {
     final provider = context.read<StructuresProvider>();
-    
+
     provider.filterStructures(
       searchQuery: _searchController.text.isEmpty
           ? null
@@ -60,554 +82,363 @@ class _StructuresListScreenState extends State<StructuresListScreen> {
     );
   }
 
-  void _showSortDialog() {
-    final provider = context.read<StructuresProvider>();
-
-    showModalBottomSheet(
-      context: context,
-      builder: (context) {
-        return Container(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+  // Construction d'une carte de structure
+  Widget _buildStructureCard(Structure structure) {
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+      child: InkWell(
+        onTap: () {
+          // Navigation vers la page de détail de la structure
+          // Navigator.pushNamed(context, '/structure/${structure.id}');
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Row(
             children: [
-              const Text(
-                'Trier par',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              // Image de la structure
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8.0),
+                child: structure.imageUrl != null
+                    ? Image.network(
+                        structure.imageUrl!,
+                        width: 80,
+                        height: 80,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) =>
+                            _buildPlaceholderIcon(),
+                      )
+                    : _buildPlaceholderText(structure),
               ),
-              const SizedBox(height: 16),
-              ...provider.sortOptions.entries.map((entry) {
-                return RadioListTile<String>(
-                  title: Text(entry.value),
-                  value: entry.key,
-                  groupValue: _selectedSortOption ?? 'name_asc',
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedSortOption = value;
-                    });
-                    _applyFilters();
-                    Navigator.pop(context);
-                  },
-                  activeColor: AppTheme.primaryColor,
-                );
-              }).toList(),
-              const SizedBox(height: 8),
-              TextButton(
-                onPressed: () {
-                  setState(() {
-                    _selectedSortOption = null;
-                  });
-                  _applyFilters();
-                  Navigator.pop(context);
-                },
-                child: const Text('Réinitialiser le tri'),
-              ),
+              const SizedBox(width: 16),
+              // Détails de la structure
+              _buildStructureDetails(structure),
+              const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
             ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 
-  void _showCategoryFilter() {
-    final provider = context.read<StructuresProvider>();
+  // Widget pour l'icône de remplacement
+  Widget _buildPlaceholderIcon() {
+    return Container(
+      width: 80,
+      height: 80,
+      color: Colors.grey[200],
+      child: Icon(Icons.business, size: 40, color: Colors.grey[500]),
+    );
+  }
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) {
-        final categories = provider.allStructures
-        .where((structure) => provider.hasAccessToStructure(structure.id))
-        .expand((structure) => structure.categories)
-        .toSet()
-        .toList()
-      ..insert(0, 'Toutes');
+  // Widget pour le texte de remplacement
+  Widget _buildPlaceholderText(Structure structure) {
+    return Container(
+      width: 80,
+      height: 80,
+      color: Colors.grey[200],
+      child: Center(
+        child: Text(
+          structure.name.isNotEmpty ? structure.name[0].toUpperCase() : '?',
+          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+        ),
+      ),
+    );
+  }
 
-        return Container(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Catégories',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Expanded(
-                child: ListView.builder(
-                  itemCount: categories.length,
-                  itemBuilder: (context, index) {
-                    final category = categories[index];
-                    return RadioListTile<String>(
-                      title: Text(category),
-                      value: category,
-                      groupValue: _selectedCategory ?? 'Toutes',
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedCategory = value == 'Toutes' ? null : value;
-                        });
-                        _applyFilters();
-                        Navigator.pop(context);
-                      },
-                      activeColor: AppTheme.primaryColor,
-                    );
-                  },
-                ),
-              ),
-            ],
+  // Détails de la structure
+  Widget _buildStructureDetails(Structure structure) {
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            structure.name,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
-        );
-      },
+          if (structure.address.isNotEmpty) ...[
+            Container(height: 4),
+            Container(width: 8),
+            Expanded(
+              child: Text(
+                structure.address,
+                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+              ),
+            ),
+            Container(width: 8),
+          ],
+          Container(height: 4),
+          _buildRatingRow(structure),
+        ],
+      ),
+    );
+  }
+
+  // Ligne d'évaluation
+  Widget _buildRatingRow(Structure structure) {
+    return Row(
+      children: [
+        const Icon(Icons.star, color: Colors.amber, size: 16),
+        Container(width: 4),
+        Text(
+          structure.rating.toStringAsFixed(1),
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+        ),
+        Container(width: 4),
+        Text(
+          '(${structure.reviewCount} avis)',
+          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+        ),
+      ],
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: _isSearching ? _buildSearchField() : const Text('Structures'),
+      appBar: CustomAppBar(
+        title: 'Structures',
+        showBackButton: true,
         actions: [
-          if (!_isSearching) ...[
-            IconButton(
-              icon: const Icon(Icons.search),
-              onPressed: () {
-                setState(() {
-                  _isSearching = true;
-                });
-              },
-            ),
-            IconButton(
-              icon: const Icon(Icons.filter_list),
-              onPressed: _showCategoryFilter,
-            ),
-            IconButton(
-              icon: const Icon(Icons.sort),
-              onPressed: _showSortDialog,
-            ),
-          ] else ...[
-            IconButton(
-              icon: const Icon(Icons.close),
-              onPressed: () {
-                setState(() {
-                  _isSearching = false;
-                  _searchController.clear();
-                  _applyFilters();
-                });
-              },
-            ),
-          ],
+          IconButton(
+            icon: Icon(_isSearching ? Icons.close : Icons.search),
+            onPressed: _toggleSearch,
+          ),
         ],
       ),
-      body: Consumer<StructuresProvider>(
-        builder: (context, provider, child) {
-          if (provider.isLoading && provider.allStructures.isEmpty) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (provider.error != null) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.error_outline, size: 48, color: Colors.red),
-                  const SizedBox(height: 16),
-                  Text(provider.error!),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: _loadStructures,
-                    child: const Text('Réessayer'),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          if (provider.allStructures.isEmpty) {
-            return const Center(child: Text('Aucune structure disponible'));
-          }
-
-          return RefreshIndicator(
-            onRefresh: _loadStructures,
-            child: ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.all(8),
-itemCount: provider.allStructures.length,
-              itemBuilder: (context, index) {
-                final structure = provider.allStructures[index];
-                return _buildStructureCard(structure);
-              },
-            ),
-          );
-        },
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showFilterOptions(),
-        backgroundColor: AppTheme.primaryColor,
-        child: const Icon(Icons.filter_alt, color: Colors.white),
-      ),
-    );
-  }
-
-  Widget _buildSearchField() {
-    return TextField(
-      controller: _searchController,
-      autofocus: true,
-      decoration: InputDecoration(
-        hintText: 'Rechercher une structure...',
-        border: InputBorder.none,
-        hintStyle: TextStyle(color: Colors.grey[400]),
-      ),
-      style: const TextStyle(color: Colors.white),
-      onSubmitted: (_) => _applyFilters(),
-    );
-  }
-
-  Widget _buildStructureCard(Structure structure) {
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-      child: InkWell(
-        onTap: () {
-          Navigator.pushNamed(
-            context,
-            AppRouter.structureDetail,
-            arguments: structure,
-          );
-        },
-        borderRadius: BorderRadius.circular(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Image de la structure
-            ClipRRect(
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(12),
-              ),
-              child: Stack(
-                children: [
-                  // Image de la structure
-                  AspectRatio(
-                    aspectRatio: 16 / 9,
-                    child: Image.network(
-                      structure.imageUrl ??
-                          'https://via.placeholder.com/300x200?text=${structure.name}',
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Container(
-                        color: Colors.grey[200],
-                        child: const Icon(
-                          Icons.business,
-                          size: 50,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ),
-                  ),
-                  // Badge de catégorie
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppTheme.primaryColor.withOpacity(0.9),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        structure.category,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                  // Bouton favori
-                  Positioned(
-                    top: 8,
-                    left: 8,
-                    child: Container(
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black12,
-                            blurRadius: 4,
-                            offset: Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: IconButton(
-                        icon: Icon(
-                          structure.isFavorite
-                              ? Icons.favorite
-                              : Icons.favorite_border,
-                          color: structure.isFavorite
-                              ? Colors.red
-                              : Colors.grey,
-                        ),
-                        onPressed: () {
-                          context.read<StructuresProvider>().toggleFavorite(
-                            structure.id,
-                          );
-                        },
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                        iconSize: 24,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Détails de la structure
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Nom et note
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          structure.name,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      Row(
-                        children: [
-                          const Icon(Icons.star, color: Colors.amber, size: 20),
-                          const SizedBox(width: 4),
-                          Text(
-                            structure.rating.toStringAsFixed(1),
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          Text(
-                            ' (${structure.reviewCount})',
-                            style: TextStyle(color: Colors.grey[600]),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 8),
-
-                  // Adresse
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.location_on_outlined,
-                        size: 16,
-                        color: Colors.grey,
-                      ),
-                      const SizedBox(width: 4),
-                      Expanded(
-                        child: Text(
-                          structure.address,
-                          style: TextStyle(color: Colors.grey[700]),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 8),
-
-                  // Bouton d'action
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () {
-                            Navigator.pushNamed(
-                              context,
-                              AppRouter.structureDetail,
-                              arguments: structure,
-                            );
-                          },
-                          icon: const Icon(Icons.info_outline, size: 18),
-                          label: const Text('Détails'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: AppTheme.primaryColor,
-                            side: BorderSide(color: AppTheme.primaryColor),
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: () {
-                            // TODO: Gérer l'action de contact
-                          },
-                          icon: const Icon(Icons.phone, size: 18),
-                          label: const Text('Contacter'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.primaryColor,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showFilterOptions() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setModalState) {
-          return Container(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+      body: _isSearching
+          ? Column(
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Filtres',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ],
-                ),
-                const Divider(),
-                const SizedBox(height: 16),
-
-                // Filtre par catégorie
-                const Text(
-                  'Catégorie',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                Consumer<StructuresProvider>(
-                  builder: (context, provider, _) {
-                    return Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: provider.categories.map((category) {
-                        final isSelected =
-                            _selectedCategory == category ||
-                            (_selectedCategory == null && category == 'Toutes');
-                        return FilterChip(
-                          label: Text(category),
-                          selected: isSelected,
-                          onSelected: (selected) {
-                            if (context.mounted) {
-                              setState(() {
-                                _selectedCategory = selected
-                                    ? (category == 'Toutes' ? null : category)
-                                    : null;
-                              });
-                            }
-                          },
-                          backgroundColor: Colors.grey[200],
-                          selectedColor: AppTheme.primaryColor.withOpacity(0.2),
-                          labelStyle: TextStyle(
-                            color: isSelected
-                                ? AppTheme.primaryColor
-                                : Colors.black87,
-                            fontWeight: isSelected
-                                ? FontWeight.bold
-                                : FontWeight.normal,
-                          ),
-                          side: BorderSide(
-                            color: isSelected
-                                ? AppTheme.primaryColor
-                                : Colors.grey[300]!,
-                          ),
-                        );
-                      }).toList(),
-                    );
-                  },
-                ),
-
-                const SizedBox(height: 24),
-
-                // Boutons d'action
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () {
-                          setModalState(() {
-                            _selectedCategory = null;
-                            _selectedSortOption = null;
-                            _searchController.clear();
-                          });
-                          _applyFilters();
-                          Navigator.pop(context);
-                        },
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          side: BorderSide(color: Colors.grey[300]!),
+                // Barre de recherche
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Container(
+                    height: 56,
+                    child: TextField(
+                      controller: _searchController,
+                      decoration: InputDecoration(
+                        hintText: 'Rechercher une structure...',
+                        prefixIcon: const Icon(Icons.search),
+                        suffixIcon: _searchController.text.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.close),
+                                onPressed: () {
+                                  _searchController.clear();
+                                  setState(() {});
+                                },
+                              )
+                            : null,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide.none,
                         ),
-                        child: const Text('Réinitialiser'),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () {
-                          _applyFilters();
-                          Navigator.pop(context);
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primaryColor,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        filled: true,
+                        fillColor: Theme.of(context).cardColor,
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 0,
+                          horizontal: 16,
                         ),
-                        child: const Text('Appliquer'),
                       ),
+                      onChanged: (value) {
+                        setState(() {});
+                      },
                     ),
-                  ],
+                  ),
                 ),
-                const SizedBox(height: 16),
+                // Filtres
+                _buildFilterControls(),
+                // Liste des structures
+                Expanded(child: _buildStructuresList()),
               ],
+            )
+          : _buildStructuresList(),
+    );
+  }
+
+  // Contrôles de filtrage
+  Widget _buildFilterControls() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      child: Row(
+        children: [
+          // Filtre par catégorie (exemple simplifié)
+          Expanded(
+            child: DropdownButtonFormField<String>(
+              value: _selectedCategory,
+              hint: const Text('Toutes les catégories'),
+              items: [
+                const DropdownMenuItem(
+                  value: null,
+                  child: Text('Toutes les catégories'),
+                ),
+                // Exemple de catégories (à remplacer par vos propres données)
+                ...['Restaurant', 'Hôtel', 'Magasin', 'Service'].map((
+                  category,
+                ) {
+                  return DropdownMenuItem(
+                    value: category,
+                    child: Text(category),
+                  );
+                }).toList(),
+              ],
+              onChanged: (value) {
+                setState(() {
+                  _selectedCategory = value;
+                });
+                _applyFilters();
+              },
+              isExpanded: true,
+              decoration: InputDecoration(
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+              ),
             ),
-          );
-        },
+          ),
+          const SizedBox(width: 8),
+          // Bouton de tri
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.sort),
+            onSelected: (value) {
+              setState(() {
+                _selectedSortOption = value;
+              });
+              _applyFilters();
+            },
+            itemBuilder: (context) => sortOptions.map((option) {
+              return PopupMenuItem<String>(
+                value: option.value,
+                child: Row(
+                  children: [
+                    if (_selectedSortOption == option.value)
+                      const Icon(Icons.check, size: 20),
+                    const SizedBox(width: 8),
+                    Text(option.label),
+                  ],
+                ),
+              );
+            }).toList(),
+          ),
+        ],
       ),
     );
+  }
+
+  // Liste des structures
+  Widget _buildStructuresList() {
+    return Consumer<StructuresProvider>(
+      builder: (context, provider, child) {
+        if (provider.isLoading) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (provider.error != null) {
+          return _buildErrorWidget(provider.error!);
+        }
+
+        final structures = provider.structures;
+
+        if (structures.isEmpty) {
+          return _buildEmptyState();
+        }
+
+        return ListView.builder(
+          controller: _scrollController,
+          itemCount: structures.length,
+          itemBuilder: (context, index) {
+            return _buildStructureCard(structures[index]);
+          },
+        );
+      },
+    );
+  }
+
+  // Widget d'erreur
+  Widget _buildErrorWidget(String error) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.error_outline, color: Colors.red, size: 48),
+          Container(height: 16),
+          const Text(
+            'Erreur de chargement',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          Container(height: 8),
+          Text(
+            error,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 14),
+          ),
+          Container(height: 16),
+          ElevatedButton(
+            onPressed: _loadStructures,
+            child: const Text('Réessayer'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Widget pour l'état vide
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.search_off, size: 64, color: Colors.grey),
+          Container(height: 16),
+          const Text(
+            'Aucun résultat trouvé',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+          ),
+          Container(height: 8),
+          const Text(
+            'Essayez de modifier vos critères de recherche',
+            style: TextStyle(fontSize: 14, color: Colors.grey),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Filtrage et tri des structures
+  List<Structure> _filterAndSortStructures(List<Structure> structures) {
+    // Filtrage par recherche
+    var filtered = structures.where((structure) {
+      final searchQuery = _searchController.text.toLowerCase();
+      if (searchQuery.isNotEmpty) {
+        return structure.name.toLowerCase().contains(searchQuery) ||
+            structure.description.toLowerCase().contains(searchQuery) ||
+            structure.address.toLowerCase().contains(searchQuery);
+      }
+      return true;
+    }).toList();
+
+    // Filtrage par catégorie
+    if (_selectedCategory != null) {
+      filtered = filtered
+          .where((structure) => structure.category == _selectedCategory)
+          .toList();
+    }
+
+    // Tri
+    if (_selectedSortOption != null) {
+      switch (_selectedSortOption) {
+        case 'name':
+          filtered.sort((a, b) => a.name.compareTo(b.name));
+          break;
+        case 'rating':
+          filtered.sort((a, b) => b.rating.compareTo(a.rating));
+          break;
+        // Ajouter d'autres options de tri si nécessaire
+      }
+    }
+
+    return filtered;
   }
 }

@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:structure_mobile/core/providers/auth_provider.dart';
 import 'package:structure_mobile/core/routes/app_router.dart';
+import 'package:structure_mobile/features/auth/providers/auth_provider.dart';
 import 'package:structure_mobile/features/structures/providers/structures_provider.dart';
 import 'package:structure_mobile/themes/app_theme.dart';
 
@@ -42,62 +41,80 @@ class _LoginScreenState extends State<LoginScreen> {
       widget.onLoginSuccess!();
       return;
     }
-    
+
     if (!context.mounted) return;
-    
-    final authProvider = context.read<AuthProvider>();
-    final router = GoRouter.of(context);
-    
+
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
     // Debug log pour vérifier les informations de l'utilisateur
     debugPrint('Utilisateur connecté: ${authProvider.user?.email}');
     debugPrint('Rôle: ${authProvider.user?.role}');
     debugPrint('Structure ID: ${authProvider.user?.structureId}');
-    
+
     // Redirection en fonction du rôle de l'utilisateur
     if (authProvider.isSuperAdmin) {
       // Super admin : accès complet au dashboard admin
       debugPrint('Redirection Super Admin vers le dashboard');
-      router.go(AppRouter.adminHome);
+      if (context.mounted) {
+        Navigator.pushReplacementNamed(context, AppRouter.adminHome);
+      }
     } else if (authProvider.isAdmin) {
       // Admin standard : accès limité à sa structure
       if (authProvider.user?.structureId != null) {
         final structureId = authProvider.user!.structureId!;
         debugPrint('Redirection Admin vers la structure: $structureId');
-        
+
         // Vérifier si la structure existe avant la redirection
         final structuresProvider = context.read<StructuresProvider>();
         final structure = structuresProvider.getStructureById(structureId);
-        
+
         if (structure != null) {
           // Redirection vers le dashboard admin avec filtre sur la structure
-          debugPrint('Redirection vers le dashboard avec structureId=$structureId');
-          router.go('${AppRouter.adminHome}?structureId=$structureId');
+          debugPrint(
+            'Redirection vers le dashboard avec structureId=$structureId',
+          );
+          if (context.mounted) {
+            Navigator.pushReplacementNamed(
+              context,
+              '${AppRouter.adminHome}?structureId=$structureId',
+            );
+          }
         } else {
           // Si la structure n'existe pas, on redirige vers le dashboard avec un message d'erreur
           debugPrint('La structure $structureId n\'existe pas');
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('La structure associée à votre compte est introuvable'),
+              content: Text(
+                'La structure associée à votre compte est introuvable',
+              ),
               backgroundColor: Colors.red,
             ),
           );
-          router.go(AppRouter.adminHome);
+          if (context.mounted) {
+            Navigator.pushReplacementNamed(context, AppRouter.adminHome);
+          }
         }
       } else {
         // Si aucune structure n'est associée, on redirige vers le dashboard admin avec un message
         debugPrint('Aucune structure associée à cet admin');
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Aucune structure associée à votre compte administrateur'),
+            content: Text(
+              'Aucune structure associée à votre compte administrateur',
+            ),
             backgroundColor: Colors.orange,
           ),
         );
-        router.go(AppRouter.adminHome);
+        if (context.mounted) {
+          Navigator.pushReplacementNamed(context, AppRouter.adminHome);
+        }
       }
     } else {
       // Utilisateur standard : accès à l'accueil public
       debugPrint('Redirection utilisateur standard vers l\'accueil');
-      router.go(AppRouter.home);
+      if (context.mounted) {
+        Navigator.pushReplacementNamed(context, AppRouter.home);
+      }
     }
   }
 
@@ -111,12 +128,12 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       final authProvider = context.read<AuthProvider>();
       await authProvider.login(
-        _emailController.text.trim(),
-        _passwordController.text,
-        widget.isAdmin || widget.isSuperAdmin,
-        widget.isSuperAdmin,
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+        isAdmin: widget.isAdmin || widget.isSuperAdmin,
+        isSuperAdmin: widget.isSuperAdmin,
       );
-      
+
       if (mounted) {
         _handleLoginSuccess();
       }
@@ -155,9 +172,17 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isAdminLogin = widget.isAdmin || widget.isSuperAdmin;
-    
+    // Suppression de la variable inutilisée
+    // final isAdminLogin = widget.isAdmin || widget.isSuperAdmin;
+
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('Connexion'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(AppTheme.paddingLarge),
@@ -173,7 +198,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: AppTheme.primaryColor.withOpacity(0.1),
+                        color: AppTheme.primaryColor.withAlpha(
+                          26,
+                        ), // Équivalent à 0.1 d'opacité
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
@@ -185,7 +212,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 24),
                     Text(
                       'Connexion',
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(
                             fontWeight: FontWeight.bold,
                             color: AppTheme.primaryColor,
                           ),
@@ -199,7 +227,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ],
                 ),
                 const SizedBox(height: 40),
-                
+
                 // Champ email
                 TextFormField(
                   controller: _emailController,
@@ -212,15 +240,16 @@ class _LoginScreenState extends State<LoginScreen> {
                     if (value == null || value.isEmpty) {
                       return 'Veuillez entrer votre email';
                     }
-                    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                        .hasMatch(value)) {
+                    if (!RegExp(
+                      r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                    ).hasMatch(value)) {
                       return 'Veuillez entrer un email valide';
                     }
                     return null;
                   },
                 ),
                 const SizedBox(height: 16),
-                
+
                 // Champ mot de passe
                 TextFormField(
                   controller: _passwordController,
@@ -234,11 +263,28 @@ class _LoginScreenState extends State<LoginScreen> {
                             ? Icons.visibility_off
                             : Icons.visibility,
                       ),
-                      onPressed: () {
-                        setState(() {
-                          _obscurePassword = !_obscurePassword;
-                        });
-                      },
+                      onPressed: _isLoading
+                          ? null
+                          : () async {
+                              if (_formKey.currentState!.validate()) {
+                                final authProvider = Provider.of<AuthProvider>(
+                                  context,
+                                  listen: false,
+                                );
+
+                                await authProvider.login(
+                                  email: _emailController.text.trim(),
+                                  password: _passwordController.text,
+                                  isAdmin:
+                                      widget.isAdmin || widget.isSuperAdmin,
+                                  isSuperAdmin: widget.isSuperAdmin,
+                                );
+
+                                if (mounted) {
+                                  _handleLoginSuccess();
+                                }
+                              }
+                            },
                     ),
                   ),
                   validator: (value) {
@@ -251,7 +297,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     return null;
                   },
                 ),
-                
+
                 // Lien mot de passe oublié
                 Align(
                   alignment: Alignment.centerRight,
@@ -262,9 +308,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: const Text('Mot de passe oublié ?'),
                   ),
                 ),
-                
+
                 const SizedBox(height: 24),
-                
+
                 // Bouton de connexion
                 ElevatedButton(
                   onPressed: _isLoading ? null : _submit,
@@ -280,17 +326,18 @@ class _LoginScreenState extends State<LoginScreen> {
                           height: 24,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
                           ),
                         )
                       : const Text('Se connecter'),
                 ),
-                
+
                 const SizedBox(height: 24),
-                
+
                 // Lien vers l'inscription
 
-                
                 // Espacement en bas pour éviter que le clavier ne cache les champs
                 const SizedBox(height: 40),
               ],
