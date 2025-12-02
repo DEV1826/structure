@@ -1,0 +1,28 @@
+package com.NND.tech.Structure_Backend.config;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.filter.CorsFilter;
+
+@Configuration
+public class CorsConfig {
+    
+    @Bean
+    public CorsFilter corsFilter() {
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowCredentials(true);
+        // Autoriser toutes les origines pour le développement
+        config.addAllowedOriginPattern("*");
+        // Autoriser tous les en-têtes
+        config.addAllowedHeader("*");
+        // Autoriser toutes les méthodes HTTP
+        config.addAllowedMethod("*");
+        config.setMaxAge(3600L);
+        
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return new CorsFilter(source);
+    }
+}
