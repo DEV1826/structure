@@ -1,0 +1,11 @@
+﻿<IfModule mod_rewrite.c>
+    RewriteEngine On
+    
+    # Redirection vers l'API v1
+    RewriteRule ^api/v1/(.*)$ api/v1/ [L,QSA]
+    
+    # Pour les autres requêtes, rediriger vers index.php
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^(.*)$ index.php?url= [L,QSA]
+</IfModule>

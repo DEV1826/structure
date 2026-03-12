@@ -1,0 +1,21 @@
+services:
+  mysql-db:
+    image: mysql:8.0
+    container_name: mysql-db
+    environment:
+      MYSQL_DATABASE: structure_backend
+      MYSQL_ROOT_PASSWORD: rootpassword
+    ports:
+      - "3307:3306" # On utilise 3307 sur ta machine pour éviter les conflits si tu as déjà un MySQL installé
+
+  app-backend:
+    build: .
+    container_name: spring-backend
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-db:3306/structure_backend?createDatabaseIfNotExist=true
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=rootpassword
+    depends_on:
+      - mysql-db
