@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -43,5 +44,26 @@ public class AuthController {
     )
     public ResponseEntity<AuthenticationResponse> register(@RequestBody RegisterRequest request) {
         return ResponseEntity.ok(authenticationService.register(request));
+    }
+
+
+    @GetMapping("/me")
+    @Operation(summary = "Profil utilisateur connecté", description = "Retourne les infos de l'utilisateur authentifié via son JWT")
+    public ResponseEntity<AuthenticationResponse> getMe(
+            @AuthenticationPrincipal com.NND.tech.Structure_Backend.model.entity.User currentUser) {
+        if (currentUser == null) {
+            return ResponseEntity.status(401).build();
+        }
+        AuthenticationResponse response = AuthenticationResponse.builder()
+                .id(currentUser.getId())
+                .email(currentUser.getEmail())
+                .username(currentUser.getUsername())
+                .firstName(currentUser.getFirstName())
+                .lastName(currentUser.getLastName())
+                .role(currentUser.getRole())
+                .structureId(currentUser.getStructure() != null ? currentUser.getStructure().getId() : null)
+                .firstLogin(currentUser.isFirstLogin())
+                .build();
+        return ResponseEntity.ok(response);
     }
 }

@@ -37,22 +37,30 @@ public class AuthenticationService {
         // 1. Recherche de l'utilisateur en base
         User user = userRepository.findByEmail(request.getIdentifier())
                 .or(() -> userRepository.findByUsername(request.getIdentifier()))
-                .orElseThrow(() -> new BadCredentialsException("Identifiants incorrects"));
+                .orElseThrow(() -> {
+                    logger.warning("Utilisateur non trouvé en base pour : " + request.getIdentifier());
+                    return new BadCredentialsException("Identifiants incorrects");
+                });
+
+        logger.info("Utilisateur trouvé : " + user.getEmail() + " avec rôle : " + user.getRole());
 
         // 2. Vérification du statut
         if (!user.isActive()) {
+            logger.warning("Compte désactivé pour : " + user.getEmail());
             throw new BadCredentialsException("Ce compte a été désactivé.");
         }
 
         // 3. Authentification Spring Security
         // C'est ici que le mot de passe est vérifié avec le PasswordEncoder
         try {
+            logger.info("Appel à authenticationManager.authenticate pour : " + user.getEmail());
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
                             user.getEmail(),
                             request.getPassword()
                     )
             );
+            logger.info("Authentification réussie via le Manager pour : " + user.getEmail());
         } catch (BadCredentialsException e) {
             logger.warning("Échec d'authentification pour : " + request.getIdentifier());
             throw new BadCredentialsException("Identifiants incorrects");
@@ -64,9 +72,13 @@ public class AuthenticationService {
 
         return AuthenticationResponse.builder()
                 .token(jwtToken)
+                .id(user.getId())
                 .username(user.getUsername())
                 .email(user.getEmail())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
                 .role(user.getRole())
+                .structureId(user.getStructure() != null ? user.getStructure().getId() : null)
                 .firstLogin(user.isFirstLogin())
                 .expiresIn(jwtService.getExpirationTime())
                 .build();
@@ -114,9 +126,13 @@ public class AuthenticationService {
 
             return AuthenticationResponse.builder()
                     .token(jwtToken)
+                    .id(savedUser.getId())
                     .email(savedUser.getEmail())
                     .username(savedUser.getUsername())
+                    .firstName(savedUser.getFirstName())
+                    .lastName(savedUser.getLastName())
                     .role(savedUser.getRole())
+                    .structureId(savedUser.getStructure() != null ? savedUser.getStructure().getId() : null)
                     .firstLogin(savedUser.isFirstLogin())
                     .expiresIn(jwtService.getExpirationTime())
                     .build();

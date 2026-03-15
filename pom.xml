@@ -55,12 +55,19 @@
 		</dependency>
 
 
-		<!-- PostgreSQL - compatible avec Render.com -->
+		<!-- MySQL / MariaDB -->
+		<dependency>
+			<groupId>com.mysql</groupId>
+			<artifactId>mysql-connector-j</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+		<!-- PostgreSQL - compatible avec Render.com (Commenté car non utilisé en local)
 		<dependency>
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>
 			<scope>runtime</scope>
 		</dependency>
+		-->
 		<!-- H2 database for tests -->
 		<dependency>
 			<groupId>com.h2database</groupId>

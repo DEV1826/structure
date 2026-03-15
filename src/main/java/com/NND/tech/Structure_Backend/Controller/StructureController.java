@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.List;
@@ -30,6 +31,7 @@ public class StructureController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyAuthority('SUPER_ADMIN','ROLE_SUPER_ADMIN','ADMIN','ROLE_ADMIN')")
     public ResponseEntity<StructureDto> createStructure(@Valid @RequestBody StructureRequest request) {
         StructureDto created = structureService.create(request);
         return ResponseEntity
@@ -38,6 +40,7 @@ public class StructureController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyAuthority('SUPER_ADMIN','ROLE_SUPER_ADMIN','ADMIN','ROLE_ADMIN')")
     public ResponseEntity<StructureDto> updateStructure(
             @PathVariable Long id,
             @Valid @RequestBody StructureDto structureDto) {
@@ -45,6 +48,7 @@ public class StructureController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyAuthority('SUPER_ADMIN','ROLE_SUPER_ADMIN','ADMIN','ROLE_ADMIN')")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteStructure(@PathVariable Long id) {
         structureService.delete(id);

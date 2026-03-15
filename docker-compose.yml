@@ -1,12 +1,18 @@
 services:
-  mysql-db:
+  db:
     image: mysql:8.0
     container_name: mysql-db
     environment:
-      MYSQL_DATABASE: structure_backend
-      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: structure
+      MYSQL_ROOT_PASSWORD: 
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
     ports:
-      - "3307:3306" # On utilise 3307 sur ta machine pour éviter les conflits si tu as déjà un MySQL installé
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   app-backend:
     build: .
@@ -14,8 +20,9 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-db:3306/structure_backend?createDatabaseIfNotExist=true
-      - SPRING_DATASOURCE_USERNAME=root
-      - SPRING_DATASOURCE_PASSWORD=rootpassword
+      - DATABASE_URL=jdbc:mysql://db:3306/structure
+      - DATABASE_USERNAME=root
+      - DATABASE_PASSWORD=
     depends_on:
-      - mysql-db
+      db:
+        condition: service_healthy
