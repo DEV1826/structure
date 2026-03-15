@@ -1,0 +1,34 @@
+[
+  {
+    "id": "str_001",
+    "name": "Hôpital Général de Yaoundé",
+    "type": "Hôpital",
+    "location": "Yaoundé",
+    "description": "Un hôpital de référence offrant des services médicaux complets.",
+    "imageUrl": "C:/Users/LABO-INFOS/Documents/kassongo images/images(4).jfif"
+  },
+  {
+    "id": "str_002",
+    "name": "Université de Douala",
+    "type": "Éducation",
+    "location": "Douala",
+    "description": "Principale université de la région du Littoral.",
+    "imageUrl": "https://placehold.co/600x400/FF0000/FFFFFF?text=Universite+Douala"
+  },
+  {
+    "id": "str_003",
+    "name": "Agence de Voyage XYZ",
+    "type": "Tourisme",
+    "location": "Bafoussam",
+    "description": "Votre partenaire pour des voyages inoubliables au Cameroun.",
+    "imageUrl": "https://placehold.co/600x400/00FF00/FFFFFF?text=Agence+Voyage"
+  },
+  {
+    "id": "str_004",
+    "name": "Centre Sportif National",
+    "type": "Sport",
+    "location": "Garoua",
+    "description": "Installations modernes pour diverses activités sportives.",
+    "imageUrl": "https://placehold.co/600x400/FFFF00/000000?text=Centre+Sportif"
+  }
+]

@@ -1,0 +1,50 @@
+[
+  {
+    "id": "srv_001",
+    "structureId": "str_001",
+    "name": "Consultation Générale",
+    "description": "Consultation médicale avec un médecin généraliste.",
+    "price": 5000,
+    "currency": "XAF"
+  },
+  {
+    "id": "srv_002",
+    "structureId": "str_001",
+    "name": "Analyse Sanguine",
+    "description": "Prélèvement et analyse de sang.",
+    "price": 12000,
+    "currency": "XAF"
+  },
+  {
+    "id": "srv_003",
+    "structureId": "str_002",
+    "name": "Inscription Licence 1",
+    "description": "Frais d'inscription pour la première année de licence.",
+    "price": 50000,
+    "currency": "XAF"
+  },
+  {
+    "id": "srv_004",
+    "structureId": "str_002",
+    "name": "Frais de Bibliothèque",
+    "description": "Accès annuel à la bibliothèque universitaire.",
+    "price": 10000,
+    "currency": "XAF"
+  },
+  {
+    "id": "srv_005",
+    "structureId": "str_003",
+    "name": "Forfait Touristique Nord",
+    "description": "Circuit de 3 jours dans la région du Nord.",
+    "price": 150000,
+    "currency": "XAF"
+  },
+  {
+    "id": "srv_006",
+    "structureId": "str_004",
+    "name": "Abonnement Salle de Sport",
+    "description": "Accès mensuel à toutes les installations sportives.",
+    "price": 25000,
+    "currency": "XAF"
+  }
+]
