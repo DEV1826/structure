@@ -38,6 +38,9 @@ public class CampostPaymentService {
     }
 
     public String initReference() {
+        if (props.getApiBaseUrl().contains("demo.campost.cm")) {
+            return "MOCK_REF_" + UUID.randomUUID().toString().substring(0, 8);
+        }
         String url = props.getApiBaseUrl() + "/transaction/init";
         HttpEntity<Void> entity = new HttpEntity<>(defaultHeaders(false));
         ResponseEntity<Map> response = exchangeWithRetry(url, HttpMethod.GET, entity, Map.class);
@@ -47,6 +50,10 @@ public class CampostPaymentService {
     }
 
     public InitiatePaymentResponse createPaymentLink(InitiatePaymentRequest req, String reference) {
+        if (props.getApiBaseUrl().contains("demo.campost.cm")) {
+            String mockLink = "https://example.com/mock-campost-payment?ref=" + reference + "&amount=" + req.getAmount();
+            return new InitiatePaymentResponse(reference, mockLink, req.getOrderId());
+        }
         String url = props.getApiBaseUrl() + "/paymentLink";
         HttpHeaders headers = defaultHeaders(false);
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -182,6 +189,15 @@ public class CampostPaymentService {
      * @return final status: SUCCESS, FAILED, CANCELLED, INSUFFICIENT_FUNDS, or TIMEOUT
      */
     public String pollAndUpdateStatus(String orderId, long maxWaitMs, long intervalMs) {
+        if (props.getApiBaseUrl().contains("demo.campost.cm")) {
+            sleepQuiet(2000); // Simulate network delay
+            transactionRepository.findFirstByOrderId(orderId).ifPresent(tx -> {
+                tx.confirm();
+                transactionRepository.save(tx);
+            });
+            return "SUCCESS";
+        }
+
         long deadline = System.currentTimeMillis() + Math.max(1_000L, maxWaitMs);
         long interval = Math.max(1_000L, intervalMs);
         String finalStatus = "TIMEOUT";

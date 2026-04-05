@@ -19,12 +19,15 @@ public interface UserMapper {
     UserMapper INSTANCE = Mappers.getMapper(UserMapper.class);
     
     @Mapping(target = "password", ignore = true) // Ne jamais exposer le mot de passe dans le DTO
+    @Mapping(source = "structure.id", target = "structureId")
     UserDto toDto(User entity);
     
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "structure", ignore = true) // S'agit géré manuellement dans le service
     void toEntity(UserDto dto, @MappingTarget User entity);
     
     @Mapping(target = "password", ignore = true) // Ne jamais exposer le mot de passe dans le DTO
+    @Mapping(source = "structure.id", target = "structureId")
     UserDto toDto(User entity, @MappingTarget UserDto dto);
     
     @Mapping(target = "id", ignore = true)

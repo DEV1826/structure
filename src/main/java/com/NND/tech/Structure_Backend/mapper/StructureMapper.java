@@ -10,6 +10,7 @@ import org.mapstruct.ReportingPolicy;
 
 @Mapper(
     componentModel = "spring",
+    uses = {ServiceMapper.class},
     nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE,
     unmappedTargetPolicy = ReportingPolicy.IGNORE
 )
@@ -18,7 +19,6 @@ public interface StructureMapper {
     @Mapping(target = "services", ignore = true)
     Structure toEntity(StructureDto dto);
     
-    @Mapping(target = "services", ignore = true)
     StructureDto toDto(Structure entity);
     
     @Mapping(target = "id", ignore = true)

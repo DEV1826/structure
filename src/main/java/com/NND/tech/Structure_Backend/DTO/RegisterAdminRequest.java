@@ -13,16 +13,18 @@ public class RegisterAdminRequest {
     private String prenom;
     private String telephone;
     private String email;
+    private String username;
     private String password;
 
     public RegisterAdminRequest() {
     }
 
-    public RegisterAdminRequest(String nom, String prenom, String telephone, String email, String password) {
+    public RegisterAdminRequest(String nom, String prenom, String telephone, String email, String username, String password) {
         this.nom = nom;
         this.prenom = prenom;
         this.telephone = telephone;
         this.email = email;
+        this.username = username;
         this.password = password;
     }
 
@@ -56,6 +58,14 @@ public class RegisterAdminRequest {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
     }
 
     public String getPassword() {

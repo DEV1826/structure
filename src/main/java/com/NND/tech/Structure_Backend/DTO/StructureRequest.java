@@ -14,18 +14,20 @@ public class StructureRequest {
     private String address;
     private String imageUrl;
     private String phone;
+    private Long adminId;
 
 
     public StructureRequest() {
     }
 
-    public StructureRequest(String name, String email, String description, String address, String imageUrl, String phone) {
+    public StructureRequest(String name, String email, String description, String address, String imageUrl, String phone, Long adminId) {
         this.name = name;
         this.email = email;
         this.description = description;
         this.address = address;
         this.imageUrl = imageUrl;
         this.phone = phone;
+        this.adminId = adminId;
     }
 
     public String getName() {
@@ -74,5 +76,13 @@ public class StructureRequest {
 
     public void setPhone(String phone) {
         this.phone = phone;
+    }
+
+    public Long getAdminId() {
+        return adminId;
+    }
+
+    public void setAdminId(Long adminId) {
+        this.adminId = adminId;
     }
 }

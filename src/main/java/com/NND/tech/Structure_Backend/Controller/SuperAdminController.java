@@ -3,6 +3,7 @@ package com.NND.tech.Structure_Backend.Controller;
 import com.NND.tech.Structure_Backend.DTO.RegisterAdminRequest;
 import com.NND.tech.Structure_Backend.DTO.StructureDto;
 import com.NND.tech.Structure_Backend.DTO.StructureRequest;
+import com.NND.tech.Structure_Backend.DTO.UserDto;
 import com.NND.tech.Structure_Backend.Service.StructureService;
 import com.NND.tech.Structure_Backend.model.entity.Structure;
 import com.NND.tech.Structure_Backend.model.entity.User;
@@ -32,9 +33,10 @@ public class SuperAdminController {
     }
 
     @PostMapping("/structures/{id}/admin")
-    public ResponseEntity<User> createAdminForStructure(
+    public ResponseEntity<UserDto> createAdminForStructure(
             @PathVariable("id") Long structureId,
             @Valid @RequestBody RegisterAdminRequest request) {
-        return ResponseEntity.ok(structureService.createAdminForStructure(structureId, request));
+        User createdUser = structureService.createAdminForStructure(structureId, request);
+        return ResponseEntity.ok(com.NND.tech.Structure_Backend.mapper.UserMapper.INSTANCE.toDto(createdUser));
     }
 }

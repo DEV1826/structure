@@ -3,6 +3,7 @@ package com.NND.tech.Structure_Backend.Service;
 import com.NND.tech.Structure_Backend.DTO.ProfileUpdateRequest;
 import com.NND.tech.Structure_Backend.DTO.UserDto;
 import com.NND.tech.Structure_Backend.Exception.ResourceNotFoundException;
+import com.NND.tech.Structure_Backend.Repository.StructureRepository;
 import com.NND.tech.Structure_Backend.Repository.UserRepository;
 import com.NND.tech.Structure_Backend.mapper.UserMapper;
 import com.NND.tech.Structure_Backend.model.entity.User;
@@ -32,6 +33,7 @@ public interface UserService {
 class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
+    private final StructureRepository structureRepository;
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
 
@@ -89,7 +91,17 @@ class UserServiceImpl implements UserService {
         existingUser.setFirstName(userDto.getFirstName());
         existingUser.setLastName(userDto.getLastName());
         existingUser.setPhone(userDto.getPhone());
-        existingUser.setRole(userDto.getRole());
+        
+        // On ne met à jour le rôle que s'il est fourni (évite l'erreur 500)
+        if (userDto.getRole() != null) {
+            existingUser.setRole(userDto.getRole());
+        }
+
+        // Mise à jour de la structure si fournie
+        if (userDto.getStructureId() != null) {
+            structureRepository.findById(userDto.getStructureId())
+                .ifPresent(existingUser::setStructure);
+        }
 
         if (userDto.getPassword() != null && !userDto.getPassword().isEmpty()) {
             existingUser.setPassword(passwordEncoder.encode(userDto.getPassword()));

@@ -56,7 +56,27 @@ public class StructureService {
         structure.setEmail(request.getEmail());
         structure.setActive(true);
 
+        // On sauvegarde d'abord la structure pour lui donner un ID
         Structure savedStructure = structureRepository.save(structure);
+
+        // Association d'un administrateur si fourni
+        if (request.getAdminId() != null) {
+            User admin = userRepository.findById(request.getAdminId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Administrateur non trouvé avec l'id : " + request.getAdminId()));
+            
+            // On s'assure que cet utilisateur est bien un ADMIN
+            if (admin.getRole() != RoleType.ADMIN) {
+                throw new IllegalArgumentException("L'utilisateur sélectionné n'est pas un administrateur");
+            }
+            
+            admin.setStructure(savedStructure);
+            // Sécurité : s'assurer que l'admin a un username avant la sauvegarde
+            if (admin.getUsername() == null || admin.getUsername().isEmpty()) {
+                admin.setUsername(admin.getEmail());
+            }
+            userRepository.save(admin);
+        }
+
         return structureMapper.toDto(savedStructure);
     }
 
@@ -91,6 +111,9 @@ public class StructureService {
 
     @Transactional
     public User createAdminForStructure(Long structureId, RegisterAdminRequest request) {
+        System.out.println("DEBUG: Création admin pour structure " + structureId);
+        System.out.println("DEBUG: Request -> Nom: " + request.getNom() + ", Prenom: " + request.getPrenom() + ", Username: " + request.getUsername());
+
         // 1. On cherche la structure
         Structure structure = structureRepository.findByIdAndActiveTrue(structureId)
                 .orElseThrow(() -> new ResourceNotFoundException("Structure non trouvée avec l'id : " + structureId));
@@ -103,9 +126,7 @@ public class StructureService {
         admin.setLastName(request.getNom());
         admin.setEmail(request.getEmail());
         admin.setPhone(request.getTelephone());
-
-
-        admin.setUsername(request.getEmail());
+        admin.setUsername(request.getUsername());
 
         // Encodage du mot de passe
         admin.setPassword(passwordEncoder.encode(request.getPassword()));
@@ -119,6 +140,12 @@ public class StructureService {
         admin.setFirstLogin(true);
 
         // 3. Sauvegarde en base de données
+        System.out.println("DEBUG: Tentative de sauvegarde d'un admin :");
+        System.out.println(" - Nom: " + admin.getLastName());
+        System.out.println(" - Prénom: " + admin.getFirstName());
+        System.out.println(" - Email: " + admin.getEmail());
+        System.out.println(" - Structure ID: " + (admin.getStructure() != null ? admin.getStructure().getId() : "NULL"));
+
         return userRepository.save(admin);
     }
 }

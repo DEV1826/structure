@@ -1,5 +1,6 @@
 package com.NND.tech.Structure_Backend.config;
 
+import com.NND.tech.Structure_Backend.model.entity.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -41,10 +42,15 @@ public class JwtService {
 
     public String generateToken(UserDetails userDetails) {
         Map<String, Object> extraClaims = new HashMap<>();
-        // On ajoute explicitement le rôle dans les claims du JWT
+        // Rôle
         extraClaims.put("role", userDetails.getAuthorities());
+        // Champs supplémentaires si l'utilisateur est une entité User
+        if (userDetails instanceof User user) {
+            extraClaims.put("structureId", user.getStructure() != null ? user.getStructure().getId() : null);
+            extraClaims.put("firstName", user.getFirstName());
+            extraClaims.put("lastName", user.getLastName());
+        }
         return generateToken(extraClaims, userDetails);
-
     }
 
     public String generateToken(Map<String, Object> extraClaims, UserDetails userDetails) {

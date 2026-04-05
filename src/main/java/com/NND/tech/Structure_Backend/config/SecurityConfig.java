@@ -35,8 +35,10 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        // Routes publiques (Login, Inscription client)
-                        .requestMatchers("/api/auth/**").permitAll()
+                        // Routes publiques
+                        .requestMatchers("/api/auth/**", "/api/health", "/api/paiements/**").permitAll()
+                        // Les gens doivent pouvoir lister les structures et services sans être connectés
+                        .requestMatchers("/api/structures", "/api/structures/**").permitAll()
                         // Routes réservées au Super-Admin (Gestion structures, validation)
                         .requestMatchers("/api/superadmin/**").hasAnyAuthority("SUPER_ADMIN" , "ROLE_SUPER_ADMIN")
                         // Routes réservées aux Admins de structures

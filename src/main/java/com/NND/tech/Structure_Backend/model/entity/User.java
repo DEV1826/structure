@@ -1,7 +1,8 @@
 package com.NND.tech.Structure_Backend.model.entity;
 
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -13,6 +14,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.util.Collection;
 import java.util.List;
 import jakarta.persistence.*;
+import org.springframework.util.StringUtils;
 
 @Data
 @Builder
@@ -35,10 +37,10 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private String password;
 
-    @Column(name = "first_name")
+    @Column(name = "first_name", nullable = false)
     private String firstName;
 
-    @Column(name = "last_name")
+    @Column(name = "last_name", nullable = false)
     private String lastName;
 
     private String phone;
@@ -55,8 +57,15 @@ public class User implements UserDetails {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "structure_id")
-    @JsonBackReference
+    @JsonIgnoreProperties({"users", "services", "employees"})
     private Structure structure;
+
+    // Helper pour le frontend Flutter
+    @Transient
+    @com.fasterxml.jackson.annotation.JsonProperty("structureId")
+    public String getStructureIdForFrontend() {
+        return structure != null ? structure.getId().toString() : null;
+    }
     
     // Méthodes utilitaires
     public boolean isAdmin() {
@@ -102,4 +111,12 @@ public class User implements UserDetails {
 
     @Override
     public boolean isEnabled() { return true; }
+
+    @PrePersist
+    @PreUpdate
+    private void ensureUsername() {
+        if (!StringUtils.hasText(username)) {
+            username = email;
+        }
+    }
 }
