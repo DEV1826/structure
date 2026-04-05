@@ -7,7 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:structure_mobile/core/constants/app_constants.dart';
 
 class StructureService {
-  static const String _baseUrl = AppConstants.apiBaseUrl;
+  static String get _baseUrl => AppConstants.apiBaseUrl;
   static const String _authTokenKey = 'auth_token';
 
   final http.Client client;

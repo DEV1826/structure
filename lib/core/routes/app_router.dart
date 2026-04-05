@@ -17,7 +17,10 @@ class AppRouter {
   static const String payment = UserRouter.payment;
   static const String paymentSuccess = UserRouter.paymentSuccess;
   
-  // Admin routes
+  // Admin & Super Admin routes
+  static const String superAdminHome = '/superadmin';
+  static const String superAdminCreateStructure = '/superadmin/create-structure';
+  static const String superAdminCreateAdmin = '/superadmin/create-admin';
   static const String adminHome = '/admin';
   static const String adminStructures = '/admin/structures';
   static const String adminUsers = '/admin/users';

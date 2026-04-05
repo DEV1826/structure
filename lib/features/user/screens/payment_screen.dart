@@ -159,13 +159,20 @@ class _PaymentScreenState extends State<PaymentScreen> {
     });
 
     try {
+      // Récupérer le premier service sélectionné ou utiliser une chaîne vide si aucun
+      final firstServiceItem = widget.selectedServices.isNotEmpty ? widget.selectedServices.first['service'] : null;
+      final serviceId = firstServiceItem != null ? firstServiceItem.id : '';
+      final serviceName = firstServiceItem != null ? firstServiceItem.name : '';
+
       final paymentData = await _paymentService.initiatePayment(
         amount: widget.totalAmount,
-        serviceId: widget.structure.id,
+        serviceId: serviceId,
         structureId: widget.structure.id,
         customerName: _nameController.text,
         customerPhone: _phoneController.text,
         customerEmail: _emailController.text,
+        serviceName: serviceName,
+        structureName: widget.structure.name,
       );
 
       if (paymentData.paymentLink.isNotEmpty) {
@@ -305,22 +312,30 @@ class _PaymentScreenState extends State<PaymentScreen> {
                             ),
                             const SizedBox(height: 8),
                             ...widget.selectedServices.map(
-                              (service) => Padding(
-                                padding: const EdgeInsets.only(bottom: 8.0),
-                                child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(service['name'] ?? ''),
-                                    Text(
-                                      '${service['price']} FCFA',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
+                              (item) {
+                                // item est une Map: {'service': ServiceModel, 'quantity': int, 'total': double}
+                                final serviceModel = item['service'];
+                                final quantity = item['quantity'] ?? 1;
+                                final lineTotal = item['total'] ?? 0.0;
+                                final serviceName = serviceModel != null ? serviceModel.name : '';
+                                
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 8.0),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(quantity > 1 ? '${quantity}x $serviceName' : serviceName),
+                                      Text(
+                                        '${lineTotal} FCFA',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                       ),
-                                    ),
-                                  ],
-                                ),
-                              ),
+                                    ],
+                                  ),
+                                );
+                              }
                             ),
                             const Divider(),
                             Row(

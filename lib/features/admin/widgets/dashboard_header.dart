@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:structure_mobile/core/providers/auth_provider.dart';
 import 'package:structure_mobile/features/admin/providers/dashboard_provider.dart';
 import 'package:structure_mobile/themes/app_theme.dart';
 
@@ -8,42 +9,37 @@ class DashboardHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final provider = Provider.of<DashboardProvider>(context, listen: false);
-    final stats = provider.stats;
-    
-    return Container(
-      color: AppTheme.primaryColor,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      child: SafeArea(
-        bottom: false,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Ligne supérieure avec le titre et les actions
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Consumer<DashboardProvider>(
+      builder: (context, provider, _) {
+        final stats = provider.stats;
+        
+        return Container(
+          color: AppTheme.primaryColor,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: SafeArea(
+            bottom: false,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Titre et filtre de date
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                // Ligne supérieure avec le titre et les actions
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'Tableau de bord',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    // Sélecteur de plage de dates
-                    Consumer<DashboardProvider>(
-                      builder: (context, provider, _) {
-                        final startDate = provider.selectedDateRange.start;
-                        final endDate = provider.selectedDateRange.end;
-                        final dateFormat = 'd MMM yyyy';
-                        
-                        return GestureDetector(
+                    // Titre et filtre de date
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Tableau de bord',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        // Sélecteur de plage de dates
+                        GestureDetector(
                           onTap: () => _selectDateRange(context, provider),
                           child: Container(
                             padding: const EdgeInsets.symmetric(
@@ -58,7 +54,7 @@ class DashboardHeader extends StatelessWidget {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
-                                  '${_formatDate(startDate, dateFormat)} - ${_formatDate(endDate, dateFormat)}',
+                                  '${_formatDate(provider.selectedDateRange.start, 'd MMM yyyy')} - ${_formatDate(provider.selectedDateRange.end, 'd MMM yyyy')}',
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 12,
@@ -73,73 +69,95 @@ class DashboardHeader extends StatelessWidget {
                               ],
                             ),
                           ),
-                        );
-                      },
+                        ),
+                      ],
+                    ),
+                    
+                    // Bouton de rafraîchissement
+                    IconButton(
+                      icon: const Icon(Icons.refresh, color: Colors.white),
+                      onPressed: provider.loadDashboardData,
+                      tooltip: 'Rafraîchir',
                     ),
                   ],
                 ),
                 
-                // Bouton de rafraîchissement
-                IconButton(
-                  icon: const Icon(Icons.refresh, color: Colors.white),
-                  onPressed: provider.loadDashboardData,
-                  tooltip: 'Rafraîchir',
+                const SizedBox(height: 24),
+                
+                // Cartes de statistiques
+                Consumer<AuthProvider>(
+                  builder: (context, auth, _) {
+                    final isSuperAdmin = auth.isSuperAdmin;
+                    
+                    return SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          if (isSuperAdmin) ...[
+                            _buildStatCard(
+                              context,
+                              title: 'Structures',
+                              value: '${stats.activeStructures}/${stats.totalStructures}',
+                              subtitle: 'Actives',
+                              icon: Icons.business,
+                              color: Colors.blue[100]!,
+                              textColor: Colors.blue[800]!,
+                            ),
+                            const SizedBox(width: 12),
+                            _buildStatCard(
+                              context,
+                              title: 'Utilisateurs',
+                              value: '${stats.activeUsers}/${stats.totalUsers}',
+                              subtitle: 'Actifs',
+                              icon: Icons.people,
+                              color: Colors.green[100]!,
+                              textColor: Colors.green[800]!,
+                            ),
+                            const SizedBox(width: 12),
+                          ],
+                          
+                          _buildStatCard(
+                            context,
+                            title: 'Revenu total',
+                            value: stats.formattedTotalRevenue,
+                            subtitle: 'Ce mois-ci',
+                            icon: Icons.attach_money,
+                            color: Colors.orange[100]!,
+                            textColor: Colors.orange[800]!,
+                          ),
+                          const SizedBox(width: 12),
+                          
+                          if (isSuperAdmin) ...[
+                            _buildStatCard(
+                              context,
+                              title: 'Nouveaux utilisateurs',
+                              value: '${stats.newUsersThisMonth}+',
+                              subtitle: 'Ce mois-ci',
+                              icon: Icons.person_add,
+                              color: Colors.purple[100]!,
+                              textColor: Colors.purple[800]!,
+                            ),
+                          ] else ...[
+                            _buildStatCard(
+                              context,
+                              title: 'Services utilisés',
+                              value: '${stats.totalServices}',
+                              subtitle: 'Total créés',
+                              icon: Icons.medical_services,
+                              color: Colors.blue[100]!,
+                              textColor: Colors.blue[800]!,
+                            ),
+                          ],
+                        ],
+                      ),
+                    );
+                  },
                 ),
               ],
             ),
-            
-            const SizedBox(height: 24),
-            
-            // Cartes de statistiques
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  _buildStatCard(
-                    context,
-                    title: 'Structures',
-                    value: '${stats.activeStructures}/${stats.totalStructures}',
-                    subtitle: 'Actives',
-                    icon: Icons.business,
-                    color: Colors.blue[100]!,
-                    textColor: Colors.blue[800]!,
-                  ),
-                  const SizedBox(width: 12),
-                  _buildStatCard(
-                    context,
-                    title: 'Utilisateurs',
-                    value: '${stats.activeUsers}/${stats.totalUsers}',
-                    subtitle: 'Actifs',
-                    icon: Icons.people,
-                    color: Colors.green[100]!,
-                    textColor: Colors.green[800]!,
-                  ),
-                  const SizedBox(width: 12),
-                  _buildStatCard(
-                    context,
-                    title: 'Revenu total',
-                    value: stats.formattedTotalRevenue,
-                    subtitle: 'Ce mois-ci',
-                    icon: Icons.attach_money,
-                    color: Colors.orange[100]!,
-                    textColor: Colors.orange[800]!,
-                  ),
-                  const SizedBox(width: 12),
-                  _buildStatCard(
-                    context,
-                    title: 'Nouveaux utilisateurs',
-                    value: '${stats.newUsersThisMonth}+',
-                    subtitle: 'Ce mois-ci',
-                    icon: Icons.person_add,
-                    color: Colors.purple[100]!,
-                    textColor: Colors.purple[800]!,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
   

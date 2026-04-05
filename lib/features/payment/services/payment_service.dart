@@ -7,12 +7,13 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
+import 'package:structure_mobile/core/constants/app_constants.dart';
 import '../models/payment_data.dart';
 import 'structure_service.dart';
 
 class PaymentService {
-  static const String _initPaymentEndpoint = '/api/paiements/initier';
-  static const String _verifyPaymentEndpoint = '/api/paiements/verifier';
+  static const String _initPaymentEndpoint = '/paiements/initier';
+  static const String _verifyPaymentEndpoint = '/paiements/verifier';
   static const String _lastOrderIdKey = 'last_order_id';
   static const String _authTokenKey = 'auth_token';
 
@@ -28,19 +29,8 @@ class PaymentService {
 
   // Configuration de l'URL de base
   static String get _baseUrl {
-    // Pour le test, on force l'IP locale
-    const String serverIp =
-        '192.168.1.179'; // Remplacez par votre IP locale si nécessaire
-    const String serverPort = '8080';
-    final String baseUrl = 'http://$serverIp:$serverPort';
-
-    debugPrint('Configuration de l\'URL de base: $baseUrl');
-
-    // Pour le débogage sur émulateur Android
-    if (Platform.isAndroid) {
-      debugPrint('Appareil Android détecté - Connexion directe au serveur');
-    }
-
+    final String baseUrl = AppConstants.apiBaseUrl;
+    debugPrint('Configuration de l\'URL de base (depuis AppConstants): $baseUrl');
     return baseUrl;
   }
 
@@ -107,7 +97,7 @@ class PaymentService {
       final email = customerEmail?.trim() ?? '';
       if (email.isNotEmpty &&
           !RegExp(
-            r'^[\w-]+(\.[\w-]+)*@([\w-]+\.)+[\w-]{2,4}\$',
+            r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
           ).hasMatch(email)) {
         throw Exception('Adresse email invalide');
       }
@@ -280,7 +270,8 @@ class PaymentService {
   // Tester la connexion au serveur
   Future<bool> testConnection() async {
     try {
-      final url = Uri.parse('$_baseUrl/api/health');
+      // _baseUrl se termine déjà par /api (par exemple http://...:8081/api)
+      final url = Uri.parse('$_baseUrl/health');
       debugPrint('Test de connexion au serveur: $url');
 
       final response = await client

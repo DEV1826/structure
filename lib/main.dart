@@ -12,6 +12,9 @@ import 'package:structure_mobile/features/structures/providers/structures_provid
 import 'package:structure_mobile/features/admin/providers/dashboard_provider.dart';
 import 'package:structure_mobile/features/admin/screens/admin_dashboard_screen.dart';
 import 'package:structure_mobile/features/structures/screens/structure_detail_screen.dart';
+import 'package:structure_mobile/features/super_admin/screens/super_admin_dashboard_screen.dart';
+import 'package:structure_mobile/features/super_admin/screens/create_structure_screen.dart';
+import 'package:structure_mobile/features/super_admin/screens/create_admin_screen.dart';
 import 'package:structure_mobile/features/splash/splash_screen.dart';
 import 'package:structure_mobile/features/user/navigation/user_router.dart';
 import 'package:structure_mobile/themes/app_theme.dart';
@@ -101,6 +104,30 @@ class MyApp extends StatelessWidget {
             isAdmin: true,
             isSuperAdmin: true,
           ),
+        ),
+      ),
+      GoRoute(
+        path: AppRouter.superAdminHome,
+        name: 'superadmin-dashboard',
+        pageBuilder: (context, state) => MaterialPage(
+          key: state.pageKey,
+          child: const SuperAdminDashboardScreen(),
+        ),
+      ),
+      GoRoute(
+        path: AppRouter.superAdminCreateStructure,
+        name: 'superadmin-create-structure',
+        pageBuilder: (context, state) => MaterialPage(
+          key: state.pageKey,
+          child: const SuperAdminCreateStructureScreen(),
+        ),
+      ),
+      GoRoute(
+        path: AppRouter.superAdminCreateAdmin,
+        name: 'superadmin-create-admin',
+        pageBuilder: (context, state) => MaterialPage(
+          key: state.pageKey,
+          child: const SuperAdminCreateAdminScreen(),
         ),
       ),
       GoRoute(

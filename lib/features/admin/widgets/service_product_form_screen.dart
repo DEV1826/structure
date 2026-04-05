@@ -4,20 +4,25 @@ import 'package:structure_mobile/themes/app_theme.dart';
 
 class ServiceProductFormScreen extends StatefulWidget {
   final ServiceProduct? serviceProduct;
-  final Function(ServiceProduct) onSave;
-  final String structureId;
-  final String structureName;
+  final Future<void> Function(ServiceProduct) onSave;
+  final String? initialStructureId;
+  final String? initialStructureName;
+  final List<Map<String, dynamic>> structures;
+  final bool isSuperAdmin;
 
   const ServiceProductFormScreen({
     super.key,
     this.serviceProduct,
     required this.onSave,
-    required this.structureId,
-    required this.structureName,
+    this.initialStructureId,
+    this.initialStructureName,
+    this.structures = const [],
+    this.isSuperAdmin = false,
   });
 
   @override
-  State<ServiceProductFormScreen> createState() => _ServiceProductFormScreenState();
+  State<ServiceProductFormScreen> createState() =>
+      _ServiceProductFormScreenState();
 }
 
 class _ServiceProductFormScreenState extends State<ServiceProductFormScreen> {
@@ -25,15 +30,30 @@ class _ServiceProductFormScreenState extends State<ServiceProductFormScreen> {
   late TextEditingController _nameController;
   late TextEditingController _descriptionController;
   late TextEditingController _priceController;
+  String? _selectedStructureId;
+  bool _isSaving = false;
 
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: widget.serviceProduct?.name ?? '');
-    _descriptionController = TextEditingController(text: widget.serviceProduct?.description ?? '');
+    _nameController =
+        TextEditingController(text: widget.serviceProduct?.name ?? '');
+    _descriptionController =
+        TextEditingController(text: widget.serviceProduct?.description ?? '');
     _priceController = TextEditingController(
-      text: widget.serviceProduct?.price.toString() ?? '',
+      text: widget.serviceProduct?.price != null
+          ? widget.serviceProduct!.price.toStringAsFixed(0)
+          : '',
     );
+    _selectedStructureId = widget.serviceProduct?.structureId ?? widget.initialStructureId;
+    
+    // Si on a des structures et aucune sélectionnée (ou sélection non valide), on prend la première
+    if (widget.isSuperAdmin && widget.structures.isNotEmpty) {
+      bool isValid = widget.structures.any((s) => s['id'].toString() == _selectedStructureId);
+      if (!isValid) {
+        _selectedStructureId = widget.structures.first['id'].toString();
+      }
+    }
   }
 
   @override
@@ -44,16 +64,31 @@ class _ServiceProductFormScreenState extends State<ServiceProductFormScreen> {
     super.dispose();
   }
 
-  void _submitForm() {
-    if (_formKey.currentState!.validate()) {
-      final serviceProduct = ServiceProduct(
-        id: widget.serviceProduct?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
-        name: _nameController.text,
-        description: _descriptionController.text,
-        price: double.tryParse(_priceController.text) ?? 0.0,
-        structureId: widget.structureId,
+  Future<void> _submitForm() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (_selectedStructureId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Veuillez sélectionner une structure')),
       );
-      widget.onSave(serviceProduct);
+      return;
+    }
+
+    setState(() => _isSaving = true);
+
+    final serviceProduct = ServiceProduct(
+      id: widget.serviceProduct?.id ??
+          DateTime.now().millisecondsSinceEpoch.toString(),
+      name: _nameController.text.trim(),
+      description: _descriptionController.text.trim(),
+      price: double.tryParse(_priceController.text) ?? 0.0,
+      structureId: _selectedStructureId!,
+    );
+
+    try {
+      await widget.onSave(serviceProduct);
+      if (mounted) Navigator.pop(context, serviceProduct);
+    } catch (_) {
+      if (mounted) setState(() => _isSaving = false);
     }
   }
 
@@ -61,11 +96,9 @@ class _ServiceProductFormScreenState extends State<ServiceProductFormScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          widget.serviceProduct == null
-              ? 'Nouveau service/produit'
-              : 'Modifier le service/produit',
-        ),
+        title: Text(widget.serviceProduct == null
+            ? 'Nouveau service/produit'
+            : 'Modifier le service/produit'),
         backgroundColor: AppTheme.primaryColor,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
@@ -76,33 +109,71 @@ class _ServiceProductFormScreenState extends State<ServiceProductFormScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Informations sur la structure
-              Card(
-                margin: const EdgeInsets.only(bottom: 20.0),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
+              // Sélection de structure
+              if (widget.isSuperAdmin && widget.structures.isNotEmpty)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 20.0),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.blue[50],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.blue[100]!),
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Structure',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.grey,
+                      const Text('Sélectionner la structure *',
+                          style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.blueGrey)),
+                      const SizedBox(height: 8),
+                      DropdownButtonFormField<String>(
+                        value: _selectedStructureId,
+                        isExpanded: true,
+                        decoration: const InputDecoration(
+                          contentPadding: EdgeInsets.symmetric(horizontal: 10),
+                          border: OutlineInputBorder(),
+                          fillColor: Colors.white,
+                          filled: true,
                         ),
-                      ),
-                      const SizedBox(height: 8.0),
-                      Text(
-                        widget.structureName,
-                        style: const TextStyle(fontSize: 18),
+                        items: widget.structures.map((s) {
+                          return DropdownMenuItem<String>(
+                            value: s['id'].toString(),
+                            child: Text(s['name'] ?? 'Inconnu'),
+                          );
+                        }).toList(),
+                        onChanged: (val) {
+                          setState(() {
+                            _selectedStructureId = val;
+                          });
+                        },
                       ),
                     ],
                   ),
+                )
+              else if (widget.initialStructureName != null)
+                Card(
+                  margin: const EdgeInsets.only(bottom: 20.0),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Structure',
+                            style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey)),
+                        const SizedBox(height: 4),
+                        Text(widget.initialStructureName!,
+                            style: const TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.w500)),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
 
-              // Champ Nom
               TextFormField(
                 controller: _nameController,
                 decoration: const InputDecoration(
@@ -110,16 +181,11 @@ class _ServiceProductFormScreenState extends State<ServiceProductFormScreen> {
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.medical_services),
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Veuillez entrer un nom';
-                  }
-                  return null;
-                },
+                validator: (v) =>
+                (v == null || v.trim().isEmpty) ? 'Champ requis' : null,
               ),
-              const SizedBox(height: 16.0),
+              const SizedBox(height: 16),
 
-              // Champ Description
               TextFormField(
                 controller: _descriptionController,
                 decoration: const InputDecoration(
@@ -128,16 +194,11 @@ class _ServiceProductFormScreenState extends State<ServiceProductFormScreen> {
                   alignLabelWithHint: true,
                 ),
                 maxLines: 3,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Veuillez entrer une description';
-                  }
-                  return null;
-                },
+                validator: (v) =>
+                (v == null || v.trim().isEmpty) ? 'Champ requis' : null,
               ),
-              const SizedBox(height: 16.0),
+              const SizedBox(height: 16),
 
-              // Champ Prix
               TextFormField(
                 controller: _priceController,
                 decoration: const InputDecoration(
@@ -145,39 +206,36 @@ class _ServiceProductFormScreenState extends State<ServiceProductFormScreen> {
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.attach_money),
                 ),
-                keyboardType: TextInputType.number,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Veuillez entrer un prix';
-                  }
-                  final price = double.tryParse(value);
-                  if (price == null || price <= 0) {
-                    return 'Veuillez entrer un prix valide';
-                  }
+                keyboardType:
+                const TextInputType.numberWithOptions(decimal: true),
+                validator: (v) {
+                  if (v == null || v.isEmpty) return 'Champ requis';
+                  final p = double.tryParse(v);
+                  if (p == null || p <= 0) return 'Prix invalide';
                   return null;
                 },
               ),
-              const SizedBox(height: 32.0),
+              const SizedBox(height: 32),
 
-              // Bouton de soumission
               SizedBox(
                 width: double.infinity,
-                height: 50.0,
+                height: 50,
                 child: ElevatedButton(
-                  onPressed: _submitForm,
+                  onPressed: _isSaving ? null : _submitForm,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primaryColor,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8.0),
-                    ),
+                        borderRadius: BorderRadius.circular(8)),
                   ),
-                  child: const Text(
-                    'Enregistrer',
-                    style: TextStyle(
-                      fontSize: 16.0,
-                      color: Colors.white,
-                    ),
-                  ),
+                  child: _isSaving
+                      ? const SizedBox(
+                      height: 22,
+                      width: 22,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white))
+                      : const Text('Enregistrer',
+                      style:
+                      TextStyle(fontSize: 16, color: Colors.white)),
                 ),
               ),
             ],

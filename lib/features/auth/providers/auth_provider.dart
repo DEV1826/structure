@@ -1,19 +1,37 @@
 import 'package:flutter/foundation.dart';
+import 'package:structure_mobile/core/network/api_service.dart';
 
 class User {
   final String id;
   final String email;
   final String? role;
   final String? structureId;
+  final String? token;
+  final String? firstName;
+  final String? lastName;
 
-  User({required this.id, required this.email, this.role, this.structureId});
+  User({
+    required this.id,
+    required this.email,
+    this.role,
+    this.structureId,
+    this.token,
+    this.firstName,
+    this.lastName,
+  });
 
   factory User.fromJson(Map<String, dynamic> json) {
+    // Le backend peut envoyer structureId comme un int ou null
+    final sId = json['structureId']?.toString();
+    
     return User(
-      id: json['id'] ?? '',
+      id: json['id']?.toString() ?? '',
       email: json['email'] ?? '',
-      role: json['role'],
-      structureId: json['structureId'],
+      role: json['role']?.toString().toLowerCase(), // On normalise en minuscule
+      structureId: sId,
+      token: json['token'],
+      firstName: json['firstName'],
+      lastName: json['lastName'],
     );
   }
 
@@ -22,6 +40,9 @@ class User {
     'email': email,
     'role': role,
     'structureId': structureId,
+    'token': token,
+    'firstName': firstName,
+    'lastName': lastName,
   };
 }
 
@@ -48,16 +69,24 @@ class AuthProvider extends ChangeNotifier {
       _error = null;
       notifyListeners();
 
-      // Simulation d'une requête API
-      await Future.delayed(const Duration(seconds: 2));
+      final response = await ApiService.post('auth/login', {
+        'username': email, // Le backend utilise email comme username par défaut
+        'password': password,
+      });
 
-      // En production, ceci viendrait d'une API
-      _user = User(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        email: email,
-        role: isSuperAdmin ? 'superadmin' : (isAdmin ? 'admin' : 'user'),
-        structureId: isAdmin || isSuperAdmin ? 'structure_1' : null,
-      );
+      if (response['success'] == true) {
+        final data = response['data'];
+        if (data != null) {
+          _user = User.fromJson(data);
+          
+          // Sauvegarder le token si présent
+          if (_user?.token != null) {
+             await ApiService.setToken(_user!.token!);
+          }
+        }
+      } else {
+        _error = response['error'] ?? 'Identifiants incorrects';
+      }
 
       notifyListeners();
     } catch (e) {
@@ -72,15 +101,7 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> logout() async {
     _user = null;
+    await ApiService.clearToken();
     notifyListeners();
   }
 }
-
-authProvider() {}
-
-login({
-  required String email,
-  required String password,
-  bool? isAdmin,
-  bool? isSuperAdmin,
-}) {}

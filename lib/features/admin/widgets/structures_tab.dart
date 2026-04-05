@@ -38,10 +38,11 @@ class _StructuresTabState extends State<StructuresTab> {
         );
   }
 
-  // ── Formulaire de création / édition ───────────────────────────
+  // ── Formulaire d'édition uniquement (la création est réservée au superadmin) ───
 
   void _showStructureForm({Map<String, dynamic>? existing}) {
     final isEdit = existing != null;
+    // Seule l'édition est autorisée ici ; la création se fait depuis le tableau de bord superadmin
     final nameCtrl =
         TextEditingController(text: existing?['name'] ?? '');
     final emailCtrl =
@@ -316,13 +317,11 @@ class _StructuresTabState extends State<StructuresTab> {
                       const SizedBox(height: 16),
                       Text('Aucune structure trouvée',
                           style: TextStyle(color: Colors.grey[600])),
-                      const SizedBox(height: 16),
-                      ElevatedButton.icon(
-                        onPressed: () => _showStructureForm(),
-                        icon: const Icon(Icons.add),
-                        label: const Text('Créer une structure'),
-                        style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.primaryColor),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Les structures sont créées par le super administrateur.',
+                        style: TextStyle(color: Colors.grey[400], fontSize: 12),
+                        textAlign: TextAlign.center,
                       ),
                     ],
                   ),
@@ -425,7 +424,7 @@ class _StructuresTabState extends State<StructuresTab> {
             const SizedBox(height: 10),
             Consumer<AuthProvider>(
               builder: (_, auth, __) {
-                final canEdit = auth.isAdmin || auth.isSuperAdmin;
+                final canEdit = auth.isSuperAdmin;
                 if (!canEdit) return const SizedBox.shrink();
                 return Row(
                   mainAxisAlignment: MainAxisAlignment.end,

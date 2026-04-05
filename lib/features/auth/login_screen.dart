@@ -35,7 +35,6 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  /// Redirection après connexion selon le rôle
   void _handleLoginSuccess() {
     if (widget.onLoginSuccess != null) {
       widget.onLoginSuccess!();

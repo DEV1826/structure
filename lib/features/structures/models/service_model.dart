@@ -46,7 +46,7 @@ class Service {
   // Créer un objet Service à partir d'un Map
   factory Service.fromMap(Map<String, dynamic> map) {
     return Service(
-      id: map['id'] ?? '',
+      id: map['id']?.toString() ?? '',
       name: map['name'] ?? '',
       description: map['description'],
       price: map['price']?.toDouble(),

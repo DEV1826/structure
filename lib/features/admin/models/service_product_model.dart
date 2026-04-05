@@ -3,7 +3,10 @@ class ServiceProduct {
   final String name;
   final String description;
   final double price;
-  final String structureId; // L'ID de la structure qui offre ce service/produit
+  final String structureId;
+  final String category;
+  final int duration;
+  final bool active;
 
   ServiceProduct({
     required this.id,
@@ -11,27 +14,33 @@ class ServiceProduct {
     required this.description,
     required this.price,
     required this.structureId,
+    this.category = 'Général',
+    this.duration = 0,
+    this.active = true,
   });
 
-  // Convert from JSON
   factory ServiceProduct.fromJson(Map<String, dynamic> json) {
     return ServiceProduct(
-      id: json['id'] ?? '',
+      id: json['id']?.toString() ?? '',
       name: json['name'] ?? '',
       description: json['description'] ?? '',
       price: (json['price'] ?? 0.0).toDouble(),
-      structureId: json['structureId'] ?? '',
+      structureId: json['structureId']?.toString() ?? '',
+      category: json['category'] ?? 'Général',
+      duration: json['duration'] ?? 0,
+      active: json['active'] ?? true,
     );
   }
 
-  // Convert to JSON
+  // Payload conforme au ServiceDto backend — structureId est dans l'URL, pas dans le body
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
       'name': name,
       'description': description,
       'price': price,
-      'structureId': structureId,
+      'category': category,
+      'duration': duration,
+      'active': active,
     };
   }
 }

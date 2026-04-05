@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:structure_mobile/core/providers/auth_provider.dart';
 import 'package:structure_mobile/features/admin/models/service_product_model.dart';
 import 'package:structure_mobile/features/admin/providers/dashboard_provider.dart';
 import 'package:structure_mobile/features/admin/widgets/service_product_form_screen.dart';
@@ -14,226 +15,117 @@ class ServicesProductsTab extends StatefulWidget {
 
 class _ServicesProductsTabState extends State<ServicesProductsTab> {
   final TextEditingController _searchController = TextEditingController();
-  bool _isLoading = false;
-  List<ServiceProduct> _filteredServices = [];
+
+  bool _initialized = false;
 
   @override
-  void initState() {
-    super.initState();
-    _loadServicesProducts();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_initialized) {
+      _initialized = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) => _loadServicesProducts());
+    }
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   // Méthode pour charger les services/produits
   Future<void> _loadServicesProducts() async {
-    if (_isLoading) return;
-
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      // Ici, vous pourriez charger les services/produits depuis une API
-      // Pour l'instant, nous utilisons des données de démo
-      await Future.delayed(const Duration(seconds: 1)); // Simuler un chargement
-      
-      // Mettre à jour la liste filtrée
-      _filteredServices = _getDemoServices();
-      
-      // Appliquer le filtre de recherche s'il y en a un
-      _applySearchFilter();
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erreur lors du chargement des services/produits: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+    final auth = context.read<AuthProvider>();
+    final provider = context.read<DashboardProvider>();
+    final structureId = auth.user?.structureId ?? provider.selectedStructureId;
+    if (structureId != null) {
+      provider.loadServices(structureId);
     }
   }
 
-  // Méthode utilitaire pour obtenir des données de démo
-  List<ServiceProduct> _getDemoServices() {
-    // Dans une application réelle, cela viendrait d'une base de données
-    return [
-      ServiceProduct(
-        id: 'SP001',
-        name: 'Consultation Générale',
-        description: 'Consultation médicale avec un médecin généraliste.',
-        price: 5000.0,
-        structureId: 'S001',
-      ),
-      ServiceProduct(
-        id: 'SP002',
-        name: 'Analyse Sanguine Complète',
-        description: 'Examen sanguin pour vérifier divers indicateurs.',
-        price: 15000.0,
-        structureId: 'S001',
-      ),
-      ServiceProduct(
-        id: 'SP003',
-        name: 'Frais de Scolarité Annuel',
-        description: 'Frais d\'inscription et de scolarité pour une année complète.',
-        price: 75000.0,
-        structureId: 'S002',
-      ),
-    ];
-  }
-  
-  // Appliquer le filtre de recherche
-  void _applySearchFilter() {
-    final query = _searchController.text.toLowerCase();
-    if (query.isEmpty) {
-      setState(() {
-        _filteredServices = _getDemoServices();
-      });
-      return;
-    }
-    
-    setState(() {
-      _filteredServices = _getDemoServices().where((service) {
-        return service.name.toLowerCase().contains(query) ||
-               service.description.toLowerCase().contains(query) ||
-               service.price.toString().contains(query);
-      }).toList();
-    });
-  }
-  
   // Ajouter un nouveau service/produit
   void _addNewServiceProduct() async {
-    final result = await Navigator.push<ServiceProduct?>(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ServiceProductFormScreen(
-          onSave: (newService) {
-            // Dans une application réelle, on ajouterait ici l'appel à l'API
-            final newServices = List<ServiceProduct>.from(_getDemoServices())
-              ..add(newService);
-            return newService;
-          },
-          structureId: 'S001', // À remplacer par l'ID de la structure actuelle
-          structureName: 'Hôpital Central', // À remplacer par le nom de la structure actuelle
-        ),
-      ),
-    );
-    
-    if (result != null && mounted) {
-      // Rafraîchir la liste après l'ajout
-      await _loadServicesProducts();
-      
+    final auth = context.read<AuthProvider>();
+    final provider = context.read<DashboardProvider>();
+    final structureId = provider.selectedStructureId ?? auth.user?.structureId ?? '';
+    final isSuperAdmin = auth.isSuperAdmin;
+
+    if (int.tryParse(structureId) == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Service/produit ajouté avec succès'),
-          backgroundColor: Colors.green,
+        SnackBar(
+          content: Text(isSuperAdmin
+              ? 'En tant que super admin, créez d\'abord une structure puis assignez-lui un admin.'
+              : 'Votre compte n\'est pas associé à une structure. Contactez votre super administrateur.'),
+          backgroundColor: Colors.orange,
+          duration: const Duration(seconds: 5),
         ),
       );
+      return;
     }
-  }
-  
-  // Modifier un service/produit existant
-  void _editServiceProduct(ServiceProduct serviceProduct) async {
-    final result = await Navigator.push<ServiceProduct?>(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ServiceProductFormScreen(
-          serviceProduct: serviceProduct,
-          onSave: (updatedService) {
-            // Dans une application réelle, on mettrait à jour ici l'API
-            final services = _getDemoServices();
-            final index = services.indexWhere((s) => s.id == updatedService.id);
-            if (index != -1) {
-              services[index] = updatedService;
-            }
-            return updatedService;
-          },
-          structureId: serviceProduct.structureId,
-          structureName: 'Hôpital Central', // À remplacer par le nom de la structure
-        ),
-      ),
-    );
-    
-    if (result != null && mounted) {
-      // Rafraîchir la liste après la modification
-      await _loadServicesProducts();
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Service/produit mis à jour avec succès'),
-          backgroundColor: Colors.green,
-        ),
-      );
-    }
-  }
-  
-  // Supprimer un service/produit
-  Future<void> _deleteServiceProduct(ServiceProduct serviceProduct) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Confirmer la suppression'),
-        content: Text(
-          'Êtes-vous sûr de vouloir supprimer le service/produit "${serviceProduct.name}" ?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Annuler'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Supprimer'),
-          ),
-        ],
-      ),
-    );
-    
-    if (confirmed == true && mounted) {
+
+    String? structureName;
+    if (structureId.isNotEmpty) {
       try {
-        // Dans une application réelle, on supprimerait ici de l'API
-        final services = _getDemoServices();
-        services.removeWhere((s) => s.id == serviceProduct.id);
-        
-        // Mettre à jour l'interface
-        await _loadServicesProducts();
-        
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Service/produit supprimé avec succès'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Erreur lors de la suppression: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
+        final struct = provider.structures.firstWhere((s) => s['id'].toString() == structureId);
+        structureName = struct['name'];
+      } catch (_) {
+        structureName = auth.user?.firstName; // Fallback
       }
+    }
+
+    final result = await Navigator.push<ServiceProduct?>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ServiceProductFormScreen(
+          onSave: (newService) async {
+            final success = await provider.createService(newService);
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(success
+                      ? 'Service/produit enregistré avec succès'
+                      : provider.error ?? 'Erreur lors de la création'),
+                  backgroundColor: success ? Colors.green : Colors.red,
+                ),
+              );
+            }
+            if (!success) throw Exception(provider.error ?? 'Erreur API');
+          },
+          initialStructureId: structureId,
+          initialStructureName: structureName ?? 'Ma Structure',
+          structures: provider.structures,
+          isSuperAdmin: isSuperAdmin,
+        ),
+      ),
+    );
+
+    if (result != null && mounted) {
+      _loadServicesProducts();
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                // Barre de recherche
-                Padding(
+    return Consumer<DashboardProvider>(
+      builder: (context, provider, _) {
+        final query = _searchController.text.toLowerCase();
+        final filteredServices = provider.services.where((service) {
+          if (query.isEmpty) return true;
+          return service.name.toLowerCase().contains(query) ||
+              service.description.toLowerCase().contains(query);
+        }).toList();
+
+        if (provider.isLoading) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        return RefreshIndicator(
+          onRefresh: _loadServicesProducts,
+          child: CustomScrollView(
+            slivers: [
+              // Barre de recherche
+              SliverToBoxAdapter(
+                child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: TextField(
                     controller: _searchController,
@@ -243,36 +135,56 @@ class _ServicesProductsTabState extends State<ServicesProductsTab> {
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10.0),
                       ),
-                      suffixIcon: IconButton(
-                        icon: const Icon(Icons.filter_list),
-                        onPressed: () {
-                          // TODO: Implémenter le filtre avancé
-                        },
-                      ),
                     ),
                     onChanged: (value) {
-                      _applySearchFilter();
+                      setState(() {});
                     },
+                  ),
+                ),
+              ),
+
+              // Liste des services/produits
+              if (filteredServices.isEmpty)
+                const SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 100.0),
+                    child: Center(child: Text('Aucun service trouvé')),
+                  ),
+                )
+              else
+                SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final service = filteredServices[index];
+                      return _buildServiceProductCard(context, service);
+                    },
+                    childCount: filteredServices.length,
                   ),
                 ),
 
-                // Liste des services/produits
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: _filteredServices.length,
-                    itemBuilder: (context, index) {
-                      final service = _filteredServices[index];
-                      return _buildServiceProductCard(context, service);
-                    },
+              // Bouton d'ajout
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: _addNewServiceProduct,
+                      icon: const Icon(Icons.add),
+                      label: const Text('Ajouter un service/produit'),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        backgroundColor: AppTheme.primaryColor,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
                   ),
                 ),
-              ],
-            ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _addNewServiceProduct,
-        backgroundColor: AppTheme.primaryColor,
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -307,17 +219,19 @@ class _ServicesProductsTabState extends State<ServicesProductsTab> {
           children: [
             IconButton(
               icon: const Icon(Icons.edit, color: Colors.blueGrey),
-              onPressed: () => _editServiceProduct(service),
+              onPressed: () {
+                // TODO: Implémenter la modification
+              },
             ),
             IconButton(
               icon: const Icon(Icons.delete, color: Colors.redAccent),
-              onPressed: () => _deleteServiceProduct(service),
+              onPressed: () {
+                // TODO: Implémenter la suppression
+              },
             ),
           ],
         ),
       ),
     );
   }
-
-
 }

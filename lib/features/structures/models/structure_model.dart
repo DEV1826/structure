@@ -19,6 +19,7 @@ class Structure {
   final bool isFavorite;
   final String status; // 'active', 'pending', 'suspended'
   final String? adminId; // ID de l'administrateur de la structure
+  final String? adminName; // Nom de l'administrateur de la structure
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -41,6 +42,7 @@ class Structure {
     this.isFavorite = false,
     this.status = 'active',
     this.adminId,
+    this.adminName,
     DateTime? createdAt,
     DateTime? updatedAt,
   })  : services = services ?? [],
@@ -83,6 +85,7 @@ class Structure {
       'isFavorite': isFavorite,
       'status': status,
       'adminId': adminId,
+      'adminName': adminName,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
     };
@@ -110,6 +113,7 @@ class Structure {
       isFavorite: map['isFavorite'] ?? false,
       status: map['status'] ?? ((map['active'] == true) ? 'active' : 'suspended'),
       adminId: map['adminId'],
+      adminName: map['adminName'],
       createdAt: map['createdAt'] != null
           ? DateTime.tryParse(map['createdAt']) ?? DateTime.now()
           : DateTime.now(),
@@ -147,6 +151,7 @@ class Structure {
     bool? isFavorite,
     String? status,
     String? adminId,
+    String? adminName,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -169,6 +174,7 @@ class Structure {
       isFavorite: isFavorite ?? this.isFavorite,
       status: status ?? this.status,
       adminId: adminId ?? this.adminId,
+      adminName: adminName ?? this.adminName,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

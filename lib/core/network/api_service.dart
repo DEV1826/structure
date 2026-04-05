@@ -5,7 +5,7 @@ import 'package:structure_mobile/core/constants/app_constants.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  static const String _baseUrl = AppConstants.apiBaseUrl;
+  static String get _baseUrl => AppConstants.apiBaseUrl;
 
   static Future<Map<String, String>> _getHeaders() async {
     final prefs = await SharedPreferences.getInstance();
@@ -18,14 +18,29 @@ class ApiService {
   }
 
   static Map<String, dynamic> _handleResponse(http.Response response) {
-    final responseData = jsonDecode(response.body);
-    if (response.statusCode >= 200 && response.statusCode < 300) {
-      return {'success': true, 'data': responseData};
-    } else {
+    try {
+      final responseData = jsonDecode(response.body);
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return {'success': true, 'data': responseData};
+      } else {
+        // Tentative d'extraction d'un message d'erreur plus précis
+        String errorMessage = 'Erreur inconnue';
+        if (responseData is Map) {
+          errorMessage = responseData['message'] ?? responseData['error'] ?? 'Erreur ${response.statusCode}';
+        }
+        
+        return {
+          'success': false,
+          'error': errorMessage,
+          'statusCode': response.statusCode,
+          'raw': responseData,
+        };
+      }
+    } catch (e) {
       return {
         'success': false,
-        'error': (responseData is Map ? responseData['message'] : null) ?? 'Erreur inconnue',
-        'statusCode': response.statusCode,
+        'error': 'Réponse serveur invalide (Code: ${response.statusCode})',
+        'details': e.toString(),
       };
     }
   }
@@ -119,5 +134,15 @@ class ApiService {
         'details': e.toString(),
       };
     }
+  }
+
+  static Future<void> setToken(String token) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('jwt_token', token);
+  }
+
+  static Future<void> clearToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('jwt_token');
   }
 }

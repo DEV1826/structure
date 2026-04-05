@@ -138,8 +138,8 @@ class StructuresProvider extends ChangeNotifier {
       _setLoading(true);
       _clearError();
 
-      // Toujours commencer avec les données de test (statiques)
-      _allStructures = List.from(StructureData.structures);
+      // On commence avec une liste vide au lieu des mocks
+      _allStructures = [];
 
       // Appel à l'API pour récupérer les structures réelles
       final response = await ApiService.get('structures');
@@ -178,7 +178,7 @@ class StructuresProvider extends ChangeNotifier {
       _setError('Erreur lors du chargement des structures: $e');
       // On garde quand même les données statiques si possible, mais on informe de l'erreur
       if (_allStructures.isEmpty) {
-        _allStructures = List.from(StructureData.structures);
+        _allStructures = [];
         _applyRoleFilter();
       }
       rethrow;

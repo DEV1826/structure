@@ -8,6 +8,7 @@ class DashboardStats {
   final int totalUsers;
   final int activeUsers;
   final int newUsersThisMonth;
+  final int totalServices; // Nombre de services/produits (spécifique à l'admin)
   final int totalRevenue;
   final Map<String, int> monthlyRevenue;
   final Map<String, int> structureCategories;
@@ -21,6 +22,7 @@ class DashboardStats {
     required this.totalUsers,
     required this.activeUsers,
     required this.newUsersThisMonth,
+    required this.totalServices,
     required this.totalRevenue,
     required this.monthlyRevenue,
     required this.structureCategories,
@@ -75,6 +77,7 @@ class DashboardStats {
       totalUsers: json['totalUsers'] ?? 0,
       activeUsers: json['activeUsers'] ?? 0,
       newUsersThisMonth: json['newUsersThisMonth'] ?? 0,
+      totalServices: json['totalServices'] ?? 0,
       totalRevenue: json['totalRevenue'] ?? 0,
       monthlyRevenue: Map<String, int>.from(json['monthlyRevenue'] ?? {}),
       structureCategories: Map<String, int>.from(json['structureCategories'] ?? {}),
@@ -178,6 +181,7 @@ class DashboardStats {
       totalUsers: 1245,
       activeUsers: 987,
       newUsersThisMonth: 124,
+      totalServices: 45,
       totalRevenue: 12500000,
       monthlyRevenue: monthlyRevenue,
       structureCategories: structureCategories,
@@ -194,6 +198,7 @@ class DashboardStats {
         totalUsers: 0,
         activeUsers: 0,
         newUsersThisMonth: 0,
+        totalServices: 0,
         totalRevenue: 0,
         monthlyRevenue: {},
         structureCategories: {},
@@ -205,13 +210,18 @@ class DashboardStats {
   factory DashboardStats.fromRealData({
     required int totalStructures,
     required int activeStructures,
+    int totalUsers = 0,
+    int activeUsers = 0,
+    int newUsersThisMonth = 0,
+    int totalServices = 0,
   }) => DashboardStats(
         totalStructures: totalStructures,
         activeStructures: activeStructures,
         pendingStructures: 0,
-        totalUsers: 0,
-        activeUsers: 0,
-        newUsersThisMonth: 0,
+        totalUsers: totalUsers,
+        activeUsers: activeUsers,
+        newUsersThisMonth: newUsersThisMonth,
+        totalServices: totalServices,
         totalRevenue: 0,
         monthlyRevenue: {},
         structureCategories: {},

@@ -17,6 +17,14 @@ class _UsersTabState extends State<UsersTab> {
   String _selectedSort = 'newest';
   bool _isLoading = false;
 
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadFilteredAndSortedUsers();
+    });
+  }
+
   // Méthode pour charger les utilisateurs avec filtres et tri
   Future<void> _loadFilteredAndSortedUsers() async {
     if (_isLoading) return;
@@ -28,8 +36,8 @@ class _UsersTabState extends State<UsersTab> {
     try {
       final provider = Provider.of<DashboardProvider>(context, listen: false);
       await provider.loadUsers(
-        status: _selectedFilter == 'all' ? null : _selectedFilter,
-        role: _selectedRole == 'all' ? null : _selectedRole,
+        status: _selectedFilter == 'all' ? null : (_selectedFilter == 'inactive' ? 'inactive' : _selectedFilter),
+        role: _selectedRole == 'all' ? null : _selectedRole.toUpperCase(),
         searchQuery: _searchController.text.isEmpty
             ? null
             : _searchController.text,
@@ -326,109 +334,26 @@ class _UsersTabState extends State<UsersTab> {
                 );
               }
 
-              // Données de démo - dans une vraie application, cela viendrait de l'API
-              final users = [
-                {
-                  'id': '1',
-                  'name': 'Admin User',
-                  'email': 'admin@example.com',
-                  'role': 'admin',
-                  'status': 'active',
-                  'lastLogin': 'Il y a 2 heures',
-                  'createdAt': '15 Juin 2023',
-                },
-                {
-                  'id': '2',
-                  'name': 'Propriétaire Hôtel',
-                  'email': 'hotel@example.com',
-                  'role': 'structure_owner',
-                  'status': 'active',
-                  'lastLogin': 'Aujourd\'hui',
-                  'createdAt': '1 Juil. 2023',
-                  'structure': 'Hôtel du Plateau',
-                },
-                {
-                  'id': '3',
-                  'name': 'Utilisateur Test',
-                  'email': 'user@example.com',
-                  'role': 'user',
-                  'status': 'active',
-                  'lastLogin': 'Hier',
-                  'createdAt': '10 Juil. 2023',
-                },
-                {
-                  'id': '4',
-                  'name': 'Restaurant Le Délicieux',
-                  'email': 'resto@example.com',
-                  'role': 'structure_owner',
-                  'status': 'pending',
-                  'lastLogin': 'Jamais',
-                  'createdAt': 'Hier',
-                  'structure': 'Restaurant Le Délicieux',
-                },
-                {
-                  'id': '5',
-                  'name': 'Utilisateur Suspendu',
-                  'email': 'suspended@example.com',
-                  'role': 'user',
-                  'status': 'suspended',
-                  'lastLogin': 'Il y a 2 semaines',
-                  'createdAt': '1 Jan. 2023',
-                  'suspendedReason': 'Violation des conditions d\'utilisation',
-                },
-              ];
+              final users = provider.users;
 
-              // Filtrer les utilisateurs en fonction des sélections
-              final filteredUsers = users.where((user) {
-                // Filtre par statut
-                if (_selectedFilter != 'all' &&
-                    user['status'] != _selectedFilter) {
-                  return false;
-                }
-
-                // Filtre par rôle
-                if (_selectedRole != 'all' && user['role'] != _selectedRole) {
-                  return false;
-                }
-
-                // Filtre par recherche
-                if (_searchController.text.isNotEmpty) {
-                  final query = _searchController.text.toLowerCase();
-                  if (!user['name'].toLowerCase().contains(query) &&
-                      !user['email'].toLowerCase().contains(query)) {
-                    return false;
-                  }
-                }
-
-                return true;
-              }).toList();
-
-              // Trier les utilisateurs
-              filteredUsers.sort((a, b) {
-                switch (_selectedSort) {
-                  case 'newest':
-                    return 0; // Dans une vraie app, comparer les dates de création
-                  case 'oldest':
-                    return 0; // Dans une vraie app, comparer les dates de création
-                  case 'name_asc':
-                    return a['name'].compareTo(b['name']);
-                  case 'name_desc':
-                    return b['name'].compareTo(a['name']);
-                  default:
-                    return 0;
-                }
-              });
-
-              if (filteredUsers.isEmpty) {
+              if (users.isEmpty) {
                 return const Center(child: Text('Aucun utilisateur trouvé'));
               }
 
               return ListView.builder(
                 padding: const EdgeInsets.only(bottom: 16),
-                itemCount: filteredUsers.length,
+                itemCount: users.length,
                 itemBuilder: (context, index) {
-                  final user = filteredUsers[index];
-                  return _buildUserCard(user);
+                  final user = users[index];
+                  // Normaliser les champs pour l'affichage si nécessaire
+                  final displayUser = {
+                    ...user,
+                    'name': user['name'] ?? '${user['firstName'] ?? ''} ${user['lastName'] ?? ''}'.trim(),
+                    'status': user['active'] == true ? 'active' : 'inactive',
+                  };
+                  if (displayUser['name'].isEmpty) displayUser['name'] = 'Utilisateur';
+
+                  return _buildUserCard(displayUser);
                 },
               );
             },
@@ -591,11 +516,14 @@ class _UsersTabState extends State<UsersTab> {
                               color: Colors.grey,
                             ),
                             const SizedBox(width: 4),
-                            Text(
-                              'Inscrit le ${user['createdAt']}',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: Colors.grey[600],
+                            Flexible(
+                              child: Text(
+                                'Inscrit le ${user['createdAt']}',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey[600],
+                                ),
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ],
@@ -877,20 +805,28 @@ class _UsersTabState extends State<UsersTab> {
           ),
         );
 
-        // Simuler un appel API
-        await Future.delayed(const Duration(seconds: 1));
+        // Appel API réel
+        final provider = context.read<DashboardProvider>();
+        final result = await provider.rejectUser(userId, reason);
 
-        // Mettre à jour l'interface
         scaffold.hideCurrentSnackBar();
-        scaffold.showSnackBar(
-          const SnackBar(
-            content: Text('Utilisateur refusé avec succès'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
-          ),
-        );
-
-        // TODO: Mettre à jour la liste des utilisateurs
+        if (result['success'] == true) {
+          scaffold.showSnackBar(
+            const SnackBar(
+              content: Text('Utilisateur refusé avec succès'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
+          await _loadFilteredAndSortedUsers();
+        } else {
+          scaffold.showSnackBar(
+            SnackBar(
+              content: Text(result['error'] ?? 'Erreur lors du refus'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -964,20 +900,28 @@ class _UsersTabState extends State<UsersTab> {
         ),
       );
 
-      // Simuler un appel API
-      await Future.delayed(const Duration(seconds: 1));
+      // Appel API réel
+      final provider = context.read<DashboardProvider>();
+      final result = await provider.suspendUser(userId, active: false);
 
-      // Mettre à jour l'interface
       scaffold.hideCurrentSnackBar();
-      scaffold.showSnackBar(
-        const SnackBar(
-          content: Text('Utilisateur suspendu avec succès'),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 2),
-        ),
-      );
-
-      // TODO: Mettre à jour la liste des utilisateurs
+      if (result['success'] == true) {
+        scaffold.showSnackBar(
+          const SnackBar(
+            content: Text('Utilisateur suspendu avec succès'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+        await _loadFilteredAndSortedUsers();
+      } else {
+        scaffold.showSnackBar(
+          SnackBar(
+            content: Text(result['error'] ?? 'Erreur lors de la suspension'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1023,20 +967,27 @@ class _UsersTabState extends State<UsersTab> {
           ),
         );
 
-        // Simuler un appel API
-        await Future.delayed(const Duration(seconds: 1));
+        // Appel API réel
+        final provider = context.read<DashboardProvider>();
+        final result = await provider.suspendUser(userId, active: true);
 
-        // Mettre à jour l'interface
         scaffold.hideCurrentSnackBar();
-        scaffold.showSnackBar(
-          const SnackBar(
-            content: Text('Suspension levée avec succès'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
-          ),
-        );
-
-        // TODO: Mettre à jour la liste des utilisateurs
+        if (result['success'] == true) {
+          scaffold.showSnackBar(
+            const SnackBar(
+              content: Text('Suspension levée avec succès'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          await _loadFilteredAndSortedUsers();
+        } else {
+          scaffold.showSnackBar(
+            SnackBar(
+              content: Text(result['error'] ?? 'Erreur lors de l\'activation'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -1097,20 +1048,27 @@ class _UsersTabState extends State<UsersTab> {
           ),
         );
 
-        // Simuler un appel API
-        await Future.delayed(const Duration(seconds: 1));
+        // Appel API réel
+        final provider = context.read<DashboardProvider>();
+        final result = await provider.deleteUser(userId);
 
-        // Mettre à jour l'interface
         scaffold.hideCurrentSnackBar();
-        scaffold.showSnackBar(
-          const SnackBar(
-            content: Text('Utilisateur supprimé avec succès'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
-          ),
-        );
-
-        // TODO: Mettre à jour la liste des utilisateurs
+        if (result['success'] == true) {
+          scaffold.showSnackBar(
+            const SnackBar(
+              content: Text('Utilisateur supprimé avec succès'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          await _loadFilteredAndSortedUsers();
+        } else {
+          scaffold.showSnackBar(
+            SnackBar(
+              content: Text(result['error'] ?? 'Erreur lors de la suppression'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {

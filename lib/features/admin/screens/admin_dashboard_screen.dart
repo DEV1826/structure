@@ -24,16 +24,30 @@ class AdminDashboardScreen extends StatefulWidget {
 class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   
-  // Liste des onglets du tableau de bord
-  final List<Map<String, dynamic>> _tabs = [
-    {'id': 'overview', 'title': 'Aperçu', 'icon': Icons.dashboard},
-    {'id': 'payments', 'title': 'Paiements', 'icon': Icons.payment},
-    {'id': 'services', 'title': 'Services/Produits', 'icon': Icons.medical_services},
-    {'id': 'admins', 'title': 'Administrateurs', 'icon': Icons.admin_panel_settings},
-    {'id': 'structures', 'title': 'Structures', 'icon': Icons.business},
-    {'id': 'users', 'title': 'Utilisateurs', 'icon': Icons.people},
-    {'id': 'reports', 'title': 'Rapports', 'icon': Icons.analytics},
-  ];
+  // Obtenir la liste des onglets en fonction du rôle
+  List<Map<String, dynamic>> _getTabs() {
+    final auth = context.read<AuthProvider>();
+    final isSuperAdmin = auth.isSuperAdmin;
+    final tabs = [
+      {'id': 'overview', 'title': 'Aperçu', 'icon': Icons.dashboard},
+      {'id': 'payments', 'title': 'Paiements', 'icon': Icons.payment},
+      {'id': 'services', 'title': 'Services/Produits', 'icon': Icons.medical_services},
+    ];
+
+    if (isSuperAdmin) {
+      tabs.add({'id': 'admins', 'title': 'Administrateurs', 'icon': Icons.admin_panel_settings});
+      tabs.add({'id': 'structures', 'title': 'Structures', 'icon': Icons.business});
+    }
+    
+    // Seul le Super Admin voit les utilisateurs
+    if (isSuperAdmin) {
+      tabs.add({'id': 'users', 'title': 'Utilisateurs', 'icon': Icons.people});
+    }
+    
+    tabs.add({'id': 'reports', 'title': 'Rapports', 'icon': Icons.analytics});
+    
+    return tabs;
+  }
 
   @override
   void didChangeDependencies() {
@@ -45,13 +59,23 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     
     // Charger les données du tableau de bord avec le filtre de structure si nécessaire
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      final auth = context.read<AuthProvider>();
       final provider = context.read<DashboardProvider>();
-      provider.loadDashboardData();
       
-      // Charger les structures avec le filtre si un ID est fourni
-      if (structureId != null && structureId.isNotEmpty) {
-        provider.loadStructures(structureId: structureId);
-        debugPrint('Chargement des données pour la structure: $structureId');
+      final currentStructureId = structureId ?? provider.selectedStructureId ?? auth.user?.structureId;
+      
+      // Mémoriser l'ID si c'est un Super Admin qui n'en a pas
+      if (auth.isSuperAdmin && provider.selectedStructureId == null && currentStructureId != null) {
+        provider.setSelectedStructureId(currentStructureId);
+      }
+      
+      provider.loadDashboardData(
+        isAdmin: true, 
+        structureId: currentStructureId,
+      );
+      
+      if (currentStructureId != null && currentStructureId.isNotEmpty) {
+        provider.loadStructures(structureId: currentStructureId);
       } else {
         provider.loadStructures();
       }
@@ -87,6 +111,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final uri = Uri.parse(ModalRoute.of(context)!.settings.name ?? '');
+    final structureId = uri.queryParameters['structureId'];
+
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: Colors.grey[100],
@@ -176,8 +203,81 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       drawer: _buildDrawer(),
       body: Column(
         children: [
+          // Indicateur Mode Démo
+          Consumer<DashboardProvider>(
+            builder: (context, provider, _) {
+              if (!provider.isDemoMode) return const SizedBox.shrink();
+              return Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                color: Colors.orange[800],
+                child: Row(
+                  children: [
+                    const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 20),
+                    const SizedBox(width: 8),
+                    const Expanded(
+                      child: Text(
+                        'Mode Démo : Connexion au serveur impossible. Les actions de création sont désactivées.',
+                        style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        final auth = context.read<AuthProvider>();
+                        provider.loadDashboardData(
+                          isAdmin: true,
+                          structureId: auth.user?.structureId,
+                        );
+                      },
+                      child: const Text('Réessayer', style: TextStyle(color: Colors.white, decoration: TextDecoration.underline)),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+          
           // En-tête du tableau de bord
           const DashboardHeader(),
+
+          // Sélecteur de structure pour Super Admin
+          Consumer2<DashboardProvider, AuthProvider>(
+            builder: (context, provider, auth, _) {
+              if (!auth.isSuperAdmin || provider.structures.isEmpty) return const SizedBox.shrink();
+              
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                color: Colors.white,
+                child: Row(
+                  children: [
+                    const Icon(Icons.business, size: 20, color: AppTheme.primaryColor),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: provider.selectedStructureId,
+                          hint: const Text('Sélectionner une structure'),
+                          isExpanded: true,
+                          items: provider.structures.map((s) {
+                            return DropdownMenuItem<String>(
+                              value: s['id'].toString(),
+                              child: Text(s['name'] ?? 'Inconnu'),
+                            );
+                          }).toList(),
+                          onChanged: (id) {
+                            if (id != null) {
+                              provider.setSelectedStructureId(id);
+                              provider.loadDashboardData(isAdmin: true, structureId: id);
+                            }
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
           
           // Barre d'onglets
           Consumer<DashboardProvider>(
@@ -187,7 +287,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(
-                    children: _tabs.map((tab) {
+                    children: _getTabs().map((tab) {
                       final isActive = provider.activeTab == tab['id'];
                       return GestureDetector(
                         onTap: () {
@@ -258,7 +358,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                         Text(provider.error!),
                         const SizedBox(height: 16),
                         ElevatedButton(
-                          onPressed: provider.loadDashboardData,
+                          onPressed: () {
+                          final auth = context.read<AuthProvider>();
+                          provider.loadDashboardData(
+                            isAdmin: true,
+                            structureId: structureId ?? auth.user?.structureId,
+                          );
+                        },
                           child: const Text('Réessayer'),
                         ),
                       ],
@@ -272,17 +378,23 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           ),
         ],
       ),
-      // Bouton flottant pour les actions rapides
+      // Bouton flottant contextuel
       floatingActionButton: Consumer2<DashboardProvider, AuthProvider>(
         builder: (context, provider, auth, _) {
-          final canManage = auth.isAdmin || auth.isSuperAdmin;
-          if (provider.activeTab == 'structures' && canManage) {
+          final isSuperAdmin = auth.isSuperAdmin;
+          final tabId = provider.activeTab;
+          
+          if (tabId == 'structures' && isSuperAdmin) {
             return FloatingActionButton(
-              onPressed: () => _showCreateStructureDialog(context),
+              onPressed: () => context.push(AppRouter.superAdminCreateStructure),
               backgroundColor: AppTheme.primaryColor,
               tooltip: 'Nouvelle structure',
               child: const Icon(Icons.add, color: Colors.white),
             );
+          } else if (tabId == 'services') {
+            // Le bouton d'ajout est maintenant intégré directement dans l'onglet ServicesProductsTab
+            // pour mieux gérer le contexte de la structure sélectionnée par le Super Admin.
+            return const SizedBox.shrink();
           }
           return const SizedBox.shrink();
         },
@@ -290,77 +402,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 
-
-  // ── Dialogue de création de structure (appelé depuis le FAB) ──
-  void _showCreateStructureDialog(BuildContext context) {
-    final nameCtrl = TextEditingController();
-    final emailCtrl = TextEditingController();
-    final phoneCtrl = TextEditingController();
-    final addressCtrl = TextEditingController();
-    final descCtrl = TextEditingController();
-    final formKey = GlobalKey<FormState>();
-    bool saving = false;
-
-    showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setLocalState) => AlertDialog(
-          title: const Text('Nouvelle structure'),
-          content: SingleChildScrollView(
-            child: Form(
-              key: formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextFormField(
-                    controller: nameCtrl,
-                    decoration: const InputDecoration(labelText: 'Nom *', border: OutlineInputBorder(), isDense: true),
-                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Champ requis' : null,
-                  ),
-                  const SizedBox(height: 10),
-                  TextFormField(controller: emailCtrl, decoration: const InputDecoration(labelText: 'Email', border: OutlineInputBorder(), isDense: true), keyboardType: TextInputType.emailAddress),
-                  const SizedBox(height: 10),
-                  TextFormField(controller: phoneCtrl, decoration: const InputDecoration(labelText: 'Téléphone', border: OutlineInputBorder(), isDense: true), keyboardType: TextInputType.phone),
-                  const SizedBox(height: 10),
-                  TextFormField(controller: addressCtrl, decoration: const InputDecoration(labelText: 'Adresse', border: OutlineInputBorder(), isDense: true)),
-                  const SizedBox(height: 10),
-                  TextFormField(controller: descCtrl, decoration: const InputDecoration(labelText: 'Description', border: OutlineInputBorder(), isDense: true), maxLines: 3),
-                ],
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Annuler')),
-            ElevatedButton(
-              onPressed: saving ? null : () async {
-                if (!formKey.currentState!.validate()) return;
-                setLocalState(() => saving = true);
-                final result = await context.read<DashboardProvider>().createStructure({
-                  'name': nameCtrl.text.trim(),
-                  'email': emailCtrl.text.trim(),
-                  'phone': phoneCtrl.text.trim(),
-                  'address': addressCtrl.text.trim(),
-                  'description': descCtrl.text.trim(),
-                });
-                if (ctx.mounted) Navigator.pop(ctx);
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                    content: Text(result['success'] == true ? 'Structure créée !' : result['error'] ?? 'Erreur'),
-                    backgroundColor: result['success'] == true ? Colors.green : Colors.red,
-                  ));
-                }
-              },
-              style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryColor),
-              child: saving ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Colors.white))) : const Text('Créer'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   // Menu latéral
   Widget _buildDrawer() {
+    final auth = context.read<AuthProvider>();
     return Drawer(
       child: ListView(
         padding: EdgeInsets.zero,
@@ -385,7 +429,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  context.read<AuthProvider>().user?.email?.split('@').first ?? 'Admin',
+                  auth.user?.email.split('@').first ?? 'Admin',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 18,
@@ -404,7 +448,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           ),
           
           // Éléments du menu
-          ..._tabs.map((tab) {
+          ..._getTabs().map((tab) {
             return Consumer<DashboardProvider>(
               builder: (context, provider, _) {
                 final isActive = provider.activeTab == tab['id'];

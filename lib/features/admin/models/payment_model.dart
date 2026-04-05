@@ -5,7 +5,8 @@ class Payment {
   final double amount;
   final DateTime date;
   final String paymentMethod;
-  final String receiptUrl; // URL pour le téléchargement du reçu
+  final String status;
+  final String reference;
 
   Payment({
     required this.id,
@@ -14,19 +15,33 @@ class Payment {
     required this.amount,
     required this.date,
     required this.paymentMethod,
-    required this.receiptUrl,
+    this.status = 'SUCCESS',
+    this.reference = '',
   });
 
   // Convert from JSON
   factory Payment.fromJson(Map<String, dynamic> json) {
+    DateTime parsedDate;
+    try {
+      final dateStr = json['transactionDate'] ?? json['date'];
+      if (dateStr != null) {
+        parsedDate = DateTime.parse(dateStr.toString());
+      } else {
+        parsedDate = DateTime.now();
+      }
+    } catch (e) {
+      parsedDate = DateTime.now();
+    }
+
     return Payment(
-      id: json['id'] ?? '',
-      clientName: json['clientName'] ?? '',
-      serviceName: json['serviceName'] ?? '',
+      id: json['id']?.toString() ?? '',
+      clientName: json['customerName'] ?? json['clientName'] ?? 'Client Inconnu',
+      serviceName: json['description'] ?? json['serviceName'] ?? 'Service',
       amount: (json['amount'] ?? 0.0).toDouble(),
-      date: json['date']?.toDate() ?? DateTime.now(),
-      paymentMethod: json['paymentMethod'] ?? '',
-      receiptUrl: json['receiptUrl'] ?? '',
+      date: parsedDate,
+      paymentMethod: json['paymentMethod'] ?? 'N/A',
+      status: json['status'] ?? 'SUCCESS',
+      reference: json['reference'] ?? '',
     );
   }
 
@@ -34,12 +49,13 @@ class Payment {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'clientName': clientName,
-      'serviceName': serviceName,
+      'customerName': clientName,
+      'description': serviceName,
       'amount': amount,
-      'date': date,
+      'transactionDate': date.toIso8601String(),
       'paymentMethod': paymentMethod,
-      'receiptUrl': receiptUrl,
+      'status': status,
+      'reference': reference,
     };
   }
 }

@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 class AppConstants {
 
   // =========================================================
@@ -8,12 +10,22 @@ class AppConstants {
   // URL de production (Render) — remplacez par votre vraie URL après déploiement
   static const String _productionUrl = 'https://structure-backend.onrender.com/api';
 
-  // URL de développement (émulateur Android)
-  static const String _devUrl = 'http://192.168.1.133:8081/api';
-  // Pour iOS ou appareil physique : 'http://192.168.1.133:8081/api'
+  // URL de développement (Vérifiez avec 'ipconfig' sur Windows)
+  // L'IP 10.79.135.238 semble être l'IP actuelle du Wi-Fi de votre PC
+  static const String _devUrl = 'http://10.79.135.238:8081/api';
 
-  // URL active selon l'environnement
-  static const String apiBaseUrl = _useProduction ? _productionUrl : _devUrl;
+  // URL active selon l'environnement (détection automatique)
+  static String get apiBaseUrl {
+    if (_useProduction) return _productionUrl;
+    
+    // En développement
+    if (kIsWeb) return 'http://localhost:8081/api';
+    
+    // NOTE : Si vous utilisez un ÉMULATEUR Android, utilisez 'http://10.0.2.2:8081/api'
+    // Sur téléphone PHYSIQUE, utilisez votre IP locale (_devUrl)
+    // Assurez-vous que votre serveur backend écoute sur 0.0.0.0 (pas seulement localhost)
+    return _devUrl;
+  }
   
   // Endpoints API
   static const String login = '/auth/login';
