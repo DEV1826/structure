@@ -6,6 +6,8 @@ import 'package:structure_mobile/features/admin/providers/dashboard_provider.dar
 import 'package:structure_mobile/features/structures/data/structure_data.dart';
 import 'package:structure_mobile/features/structures/models/structure_model.dart';
 import 'package:structure_mobile/themes/app_theme.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 
 class SuperAdminCreateStructureScreen extends StatefulWidget {
   const SuperAdminCreateStructureScreen({super.key});
@@ -23,6 +25,19 @@ class _SuperAdminCreateStructureScreenState extends State<SuperAdminCreateStruct
   final _emailController = TextEditingController();
   final _imageUrlController = TextEditingController();
   bool _isLoading = false;
+
+  File? _selectedImage;
+  final ImagePicker _picker = ImagePicker();
+
+  Future<void> _pickImage() async {
+    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+    if (image != null) {
+      setState(() {
+        _selectedImage = File(image.path);
+        _imageUrlController.text = image.path;
+      });
+    }
+  }
 
   Structure? _selectedDummyStructure;
   Admin? _selectedAdmin;
@@ -229,6 +244,40 @@ class _SuperAdminCreateStructureScreenState extends State<SuperAdminCreateStruct
                 TextFormField(
                   controller: _imageUrlController,
                   decoration: const InputDecoration(labelText: 'URL de l\'image (optionnel)'),
+                ),
+                const SizedBox(height: 16),
+                Center(
+                  child: Column(
+                    children: [
+                      if (_selectedImage != null)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 16.0),
+                          child: Container(
+                            height: 200,
+                            width: 250, // Dimension fixe pour centrer l'image
+                            decoration: BoxDecoration(
+                              color: Colors.grey[100],
+                              border: Border.all(color: Colors.grey[300]!),
+                              borderRadius: BorderRadius.circular(12.0),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(11.0),
+                              child: Image.file(
+                                _selectedImage!,
+                                fit: BoxFit.contain, // Respecte l'espace sans rogner
+                              ),
+                            ),
+                          ),
+                        ),
+                      OutlinedButton.icon(
+                        onPressed: _pickImage,
+                        icon: const Icon(Icons.photo_library),
+                        label: Text(_selectedImage == null
+                            ? 'Sélectionner depuis la galerie'
+                            : 'Changer l\'image'),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 32),
                 ElevatedButton(

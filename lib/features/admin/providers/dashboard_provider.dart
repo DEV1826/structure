@@ -12,6 +12,9 @@ class DashboardProvider extends ChangeNotifier {
   String? _error;
   String _activeTab = 'overview';
   String? _selectedStructureId; // ID de la structure sélectionnée par le Super Admin
+  
+  // TEMPORAIRE : Forcer le mode démo même si connecté
+  final bool _forceDemoData = true; 
 
   // Structures chargées depuis l'API
   List<Map<String, dynamic>> _structures = [];
@@ -49,6 +52,14 @@ class DashboardProvider extends ChangeNotifier {
     _isLoading = true;
     _error = null;
     notifyListeners();
+
+    if (_forceDemoData) {
+      _structures = _getFictiveStructures();
+      _isDemoMode = false; // Désactiver l'indicateur visuel comme demandé
+      _isLoading = false;
+      notifyListeners();
+      return;
+    }
 
     try {
       final response = await ApiService.get('structures');
@@ -133,6 +144,13 @@ class DashboardProvider extends ChangeNotifier {
     _isLoading = true;
     _error = null;
     notifyListeners();
+
+    if (_forceDemoData) {
+      _payments = _getFictivePayments();
+      _isLoading = false;
+      notifyListeners();
+      return;
+    }
     try {
       final endpoint = (structureId != null && structureId.isNotEmpty)
           ? 'transactions/structure/$structureId'
@@ -163,6 +181,13 @@ class DashboardProvider extends ChangeNotifier {
     _isLoading = true;
     _error = null;
     notifyListeners();
+
+    if (_forceDemoData) {
+      _services = _getFictiveServices();
+      _isLoading = false;
+      notifyListeners();
+      return;
+    }
     try {
       final response = await ApiService.get('structures/$structureId/services');
       List<ServiceProduct> realServices = [];
@@ -371,6 +396,14 @@ class DashboardProvider extends ChangeNotifier {
     _isLoading = true;
     _error = null;
     notifyListeners();
+
+    if (_forceDemoData) {
+      _stats = DashboardStats.demo();
+      _isDemoMode = false; // Désactiver l'indicateur visuel
+      _isLoading = false;
+      notifyListeners();
+      return;
+    }
 
     try {
       // Charge les structures
@@ -620,6 +653,13 @@ class DashboardProvider extends ChangeNotifier {
     _isLoading = true;
     _error = null;
     notifyListeners();
+
+    if (_forceDemoData) {
+      _users = _getFictiveUsers();
+      _isLoading = false;
+      notifyListeners();
+      return;
+    }
     try {
       final response = await ApiService.get('users');
       if (response['success'] == true) {
@@ -651,4 +691,11 @@ class DashboardProvider extends ChangeNotifier {
     }
   }
 
+  List<Map<String, dynamic>> _getFictiveUsers() {
+    return [
+      {'id': 'U001', 'email': 'jean.dupont@email.com', 'firstName': 'Jean', 'lastName': 'Dupont', 'role': 'USER', 'active': true, 'createdAt': DateTime.now().subtract(const Duration(days: 10)).toIso8601String()},
+      {'id': 'U002', 'email': 'marie.martin@email.com', 'firstName': 'Marie', 'lastName': 'Martin', 'role': 'USER', 'active': true, 'createdAt': DateTime.now().subtract(const Duration(days: 5)).toIso8601String()},
+      {'id': 'U003', 'email': 'admin.test@email.com', 'firstName': 'Admin', 'lastName': 'Test', 'role': 'ADMIN', 'active': true, 'createdAt': DateTime.now().subtract(const Duration(days: 20)).toIso8601String()},
+    ];
+  }
 }

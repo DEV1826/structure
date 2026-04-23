@@ -14,6 +14,9 @@ class StructuresProvider extends ChangeNotifier {
   String? _searchQuery;
   String? _selectedCategory;
   String? _selectedSortOption;
+  
+  // TEMPORAIRE : Forcer le mode démo sur la liste publique
+  final bool _forceDemoData = true;
 
   StructuresProvider(this.context) {
     // Initialisation du provider avec le contexte
@@ -140,6 +143,11 @@ class StructuresProvider extends ChangeNotifier {
 
       // On commence avec une liste vide au lieu des mocks
       _allStructures = [];
+
+      // Toujours ajouter les données fictives si le flag est actif
+      if (_forceDemoData) {
+        _allStructures.addAll(_getFictiveStructures());
+      }
 
       // Appel à l'API pour récupérer les structures réelles
       final response = await ApiService.get('structures');
@@ -304,6 +312,56 @@ class StructuresProvider extends ChangeNotifier {
     _selectedCategory = null;
     _selectedSortOption = null;
     _applyRoleFilter();
+  }
+
+  List<Structure> _getFictiveStructures() {
+    return [
+      Structure(
+        id: 'S001',
+        name: 'Hôpital Central',
+        description: 'Établissement de santé de référence.',
+        address: 'Yaoundé Centre',
+        category: 'Santé',
+        rating: 4.8,
+        reviewCount: 450,
+      ),
+      Structure(
+        id: 'S002',
+        name: 'École Primaire',
+        description: 'Éducation de qualité pour tous.',
+        address: 'Yaoundé',
+        category: 'Éducation',
+        rating: 4.5,
+        reviewCount: 120,
+      ),
+      Structure(
+        id: 'S003',
+        name: 'Hôtel du Plateau',
+        description: 'Confort et luxe au cœur de la ville.',
+        address: 'Plateau',
+        category: 'Hébergement',
+        rating: 4.2,
+        reviewCount: 85,
+      ),
+      Structure(
+        id: 'S004',
+        name: 'Restaurant Le Délicieux',
+        description: 'Cuisine locale et internationale raffinée.',
+        address: 'Centre Ville',
+        category: 'Restauration',
+        rating: 4.9,
+        reviewCount: 230,
+      ),
+      Structure(
+        id: 'S005',
+        name: 'Clinique du Cœur',
+        description: 'Spécialistes en cardiologie.',
+        address: 'Bastos',
+        category: 'Santé',
+        rating: 4.7,
+        reviewCount: 65,
+      ),
+    ];
   }
 }
 

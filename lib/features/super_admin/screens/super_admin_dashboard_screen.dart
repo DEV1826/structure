@@ -93,49 +93,103 @@ class _SuperAdminDashboardScreenState extends State<SuperAdminDashboardScreen> {
 
           return RefreshIndicator(
             onRefresh: () => provider.loadStructures(),
-            child: ListView.builder(
-              padding: const EdgeInsets.all(AppTheme.paddingMedium),
-              itemCount: structures.length,
-              itemBuilder: (context, index) {
-                final structure = structures[index];
-                return Card(
-                  margin: const EdgeInsets.only(bottom: AppTheme.paddingMedium),
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.all(AppTheme.paddingMedium),
-                    leading: CircleAvatar(
-                      backgroundColor: AppTheme.primaryColor.withOpacity(0.1),
-                      child: const Icon(Icons.business, color: AppTheme.primaryColor),
-                    ),
-                    title: Text(
-                      structure.name,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                         const SizedBox(height: 4),
-                         Text(structure.category),
-                         Text(structure.address, style: const TextStyle(fontSize: 12)),
-                         if (structure.adminName != null) ...[
-                           const SizedBox(height: 4),
-                           Text(
-                             'Admin: ${structure.adminName}',
-                             style: const TextStyle(
-                               fontSize: 12,
-                               fontWeight: FontWeight.bold,
-                               color: AppTheme.primaryColor,
-                             ),
-                           ),
-                         ],
-                      ],
-                    ),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () {
-                       // Action optionnelle: View details
-                    },
-                  ),
-                );
-              },
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 600),
+                child: ListView.builder(
+                  padding: const EdgeInsets.all(AppTheme.paddingMedium),
+                  itemCount: structures.length,
+                  itemBuilder: (context, index) {
+                    final structure = structures[index];
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: AppTheme.paddingMedium),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 2,
+                      child: InkWell(
+                        onTap: () {
+                           // Action optionnelle: View details
+                        },
+                        borderRadius: BorderRadius.circular(12),
+                        child: Padding(
+                          padding: const EdgeInsets.all(AppTheme.paddingLarge),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              CircleAvatar(
+                                radius: 32,
+                                backgroundColor: AppTheme.primaryColor.withOpacity(0.1),
+                                child: const Icon(Icons.business, size: 32, color: AppTheme.primaryColor),
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                structure.name,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: Text(
+                                  structure.category,
+                                  style: TextStyle(
+                                    color: Colors.grey[800],
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                structure.address,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey[600],
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              if (structure.adminName != null) ...[
+                                const SizedBox(height: 16),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.primaryColor.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Icon(Icons.person, size: 16, color: AppTheme.primaryColor),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        'Admin: ${structure.adminName}',
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppTheme.primaryColor,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
             ),
           );
         },

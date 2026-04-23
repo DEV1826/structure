@@ -120,7 +120,7 @@ class _HomeScreenState extends State<HomeScreen> {
             subtitle: const Text('Gérez votre structure'),
             onTap: () {
               Navigator.pop(context);
-              context.go(AppRouter.adminLogin);
+              context.push(AppRouter.adminLogin);
             },
           ),
           ListTile(
@@ -129,7 +129,7 @@ class _HomeScreenState extends State<HomeScreen> {
             subtitle: const Text('Gérez toutes les structures'),
             onTap: () {
               Navigator.pop(context);
-              context.go(AppRouter.superAdminLogin);
+              context.push(AppRouter.superAdminLogin);
             },
           ),
         ],

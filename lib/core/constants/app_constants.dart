@@ -11,8 +11,8 @@ class AppConstants {
   static const String _productionUrl = 'https://structure-backend.onrender.com/api';
 
   // URL de développement (Vérifiez avec 'ipconfig' sur Windows)
-  // L'IP 10.79.135.238 semble être l'IP actuelle du Wi-Fi de votre PC
-  static const String _devUrl = 'http://10.79.135.238:8081/api';
+  // L'IP 10.1.100.227 semble être l'IP actuelle du Wi-Fi de votre PC
+  static const String _devUrl = 'http://10.1.100.227:8081/api';
 
   // URL active selon l'environnement (détection automatique)
   static String get apiBaseUrl {

@@ -46,9 +46,9 @@ class _LoginScreenState extends State<LoginScreen> {
     debugPrint('Connecté: ${auth.user?.email} | Rôle: ${auth.user?.role}');
 
     if (auth.isSuperAdmin || auth.isAdmin) {
-      context.go(AppRouter.adminHome);
+      context.push(AppRouter.adminHome);
     } else {
-      context.go(AppRouter.home);
+      context.push(AppRouter.home);
     }
   }
 

@@ -196,13 +196,17 @@ class StructureCard extends StatelessWidget {
                   ),
                   errorWidget: (context, url, error) => Container(
                     color: Colors.grey[200],
-                    child: const Icon(Icons.broken_image, size: 40.0),
+                    child: const Center(
+                      child: Icon(Icons.broken_image, size: 40.0),
+                    ),
                   ),
                 )
               : Container(
                   height: 160.0,
                   color: Colors.grey[200],
-                  child: const Icon(Icons.store_mall_directory_outlined, size: 60.0),
+                  child: const Center(
+                    child: Icon(Icons.store_mall_directory_outlined, size: 60.0),
+                  ),
                 ),
         ),
         

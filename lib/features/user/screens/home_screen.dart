@@ -299,7 +299,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         onTap: () {
                           // Navigation vers le détail de la structure avec GoRouter
                           final route = '${AppRouter.structureDetail.replaceAll(':id', structure.id)}';
-                          GoRouter.of(context).go(route);
+                          GoRouter.of(context).push(route);
                         },
                       );
                     },

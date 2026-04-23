@@ -121,6 +121,18 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         title: const Text('Tableau de bord Admin'),
         elevation: 0,
         actions: [
+          // Bouton de retour
+          IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go(AppRouter.welcome);
+              }
+            },
+            tooltip: 'Retour',
+          ),
           // Bouton de notification
           IconButton(
             icon: Stack(
@@ -203,39 +215,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       drawer: _buildDrawer(),
       body: Column(
         children: [
-          // Indicateur Mode Démo
-          Consumer<DashboardProvider>(
-            builder: (context, provider, _) {
-              if (!provider.isDemoMode) return const SizedBox.shrink();
-              return Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                color: Colors.orange[800],
-                child: Row(
-                  children: [
-                    const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 20),
-                    const SizedBox(width: 8),
-                    const Expanded(
-                      child: Text(
-                        'Mode Démo : Connexion au serveur impossible. Les actions de création sont désactivées.',
-                        style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        final auth = context.read<AuthProvider>();
-                        provider.loadDashboardData(
-                          isAdmin: true,
-                          structureId: auth.user?.structureId,
-                        );
-                      },
-                      child: const Text('Réessayer', style: TextStyle(color: Colors.white, decoration: TextDecoration.underline)),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
           
           // En-tête du tableau de bord
           const DashboardHeader(),
